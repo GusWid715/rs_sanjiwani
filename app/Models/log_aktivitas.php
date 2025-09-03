@@ -3,8 +3,27 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 
-class log_aktivitas extends Model
+class Log_aktivitas extends Model
 {
-    //
+    use HasFactory;
+
+    protected $table = 'log_aktivitas';
+
+    // tabel hanya punya kolom 'waktu', bukan created_at/updated_at
+    public $timestamps = false;
+
+    protected $fillable = [
+        'user_id',
+        'aktivitas',
+        'entity',
+        'entity_id',
+        'waktu',
+    ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
 }
