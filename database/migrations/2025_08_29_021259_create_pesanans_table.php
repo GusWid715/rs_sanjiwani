@@ -16,6 +16,7 @@ return new class extends Migration
             $table->unsignedInteger('user_id');
             $table->dateTime('tanggal')->useCurrent();
             $table->enum('status', ['pending','proses','selesai','batal'])->default('pending');
+            $table->text('catatan')->nullable()->after('status');
             $table->timestamps();
 
             $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');

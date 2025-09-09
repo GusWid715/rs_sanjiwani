@@ -4,39 +4,35 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Foundation\Auth\AuthenticatesUsers;
+use Illuminate\Support\Facades\Auth;
 
 class LoginController extends Controller
 {
-    /*
-    |--------------------------------------------------------------------------
-    | Login Controller
-    |--------------------------------------------------------------------------
-    |
-    | This controller handles authenticating users for the application and
-    | redirecting them to your home screen. The controller uses a trait
-    | to conveniently provide its functionality to your applications.
-    |
-    */
+    use AuthenticatesUsers;
 
     public function username()
     {
         return 'username';
     }
 
-    use AuthenticatesUsers;
-
     /**
-     * Where to redirect users after login.
-     *
-     * @var string
+     * Override redirect setelah login
      */
-    protected $redirectTo = '/home';
+    protected function redirectTo()
+    {
+        $user = Auth::user();
 
-    /**
-     * Create a new controller instance.
-     *
-     * @return void
-     */
+        if ($user->role === 'admin') {
+            return '/admin'; // nanti kita buat route admin
+        }
+
+        if ($user->role === 'pasien') {
+        return '/user/dashboard'; // route pasien
+    }
+
+        return '/home'; 
+    }
+
     public function __construct()
     {
         $this->middleware('guest')->except('logout');

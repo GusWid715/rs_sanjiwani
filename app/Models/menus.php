@@ -20,7 +20,7 @@ class menus extends Model
 
     public function kategori()
     {
-        return $this->belongsTo(kategori_makanans::class, 'kategori_id');
+        return $this->belongsTo(kategori_makanans::class, 'kategori_id', 'id');
     }
 
     public function detailPesanan()

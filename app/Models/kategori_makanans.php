@@ -15,6 +15,6 @@ class Kategori_makanans extends Model
 
     public function menus()
     {
-        return $this->hasMany(menus::class, 'kategori_id');
+        return $this->hasMany(menus::class, 'kategori_id', 'id');
     }
 }

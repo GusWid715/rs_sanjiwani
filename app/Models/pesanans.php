@@ -14,6 +14,7 @@ class pesanans extends Model
     protected $fillable = [
         'tanggal',
         'status',
+        'catatan',
     ];
 
     protected $dates = ['tanggal'];
