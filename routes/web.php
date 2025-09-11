@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Admin\AdminController;
+use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\MenuController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 
@@ -12,6 +14,7 @@ use App\Http\Controllers\User\PesananController as UserPesananController;
 // (optional) manager controllers if nanti dipakai
 use App\Http\Controllers\Manager\PesananController as ManagerPesananController;
 use App\Http\Controllers\Manager\DashboardController as ManagerDashboardController;
+use SebastianBergmann\CodeCoverage\Report\Html\Dashboard;
 
 /*
 |--------------------------------------------------------------------------
@@ -72,12 +75,14 @@ Route::prefix('user')->name('user.')->middleware(['auth','isUser'])->group(funct
 // Hati-hati: resource 'users' harus mengarah ke controller yang meng-handle user CRUD.
 // Pastikan AdminUserController ada di App\Http\Controllers\Admin\UserController
 Route::prefix('admin')->name('admin.')->middleware(['auth','isAdmin'])->group(function () {
-    Route::get('/', function () {
-        return redirect()->route('admin.users.index');
-    });
+    // dashboard admin
+    Route::get('/', [DashboardController::class, 'dashboard'])->name('dashboard');
 
-    // Manajemen user oleh admin
+    // resource controller untuk manajemen user (CRUD)
     Route::resource('users', AdminController::class);
+
+    // resource controller untuk manajemen menu (CRUD) - buat controller nanti jika belum ada
+    Route::resource('menus', MenuController::class);
 });
 
 

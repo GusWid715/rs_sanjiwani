@@ -12,7 +12,7 @@ class Kategori_makanans extends Model
     protected $table = 'kategori_menus';
 
     protected $fillable = ['nama_kategori'];
-
+    public $timestamps = true;
     public function menus()
     {
         return $this->hasMany(menus::class, 'kategori_id', 'id');
