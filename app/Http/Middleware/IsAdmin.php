@@ -22,13 +22,10 @@ class IsAdmin
 
         $user = Auth::user();
 
-        // cek role, sesuaikan string 'admin' jika kamu pakai nilai lain
+        // cek role, sesuaikan string 'admin'
         if ($user->role !== 'admin') {
-            // Pilihan A: redirect ke homepage dengan pesan (user friendly)
+            // redirect ke homepage
             return redirect('/')->with('error', 'Anda tidak memiliki akses ke halaman admin.');
-
-            // Pilihan B (alternatif): abort dengan HTTP 403
-            // return abort(403, 'Unauthorized action.');
         }
 
         return $next($request);

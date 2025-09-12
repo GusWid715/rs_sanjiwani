@@ -69,11 +69,7 @@ Route::prefix('user')->name('user.')->middleware(['auth','isUser'])->group(funct
 });
 
 
-// ----------------------
-// ADMIN routes
-// ----------------------
-// Hati-hati: resource 'users' harus mengarah ke controller yang meng-handle user CRUD.
-// Pastikan AdminUserController ada di App\Http\Controllers\Admin\UserController
+// ================= ADMIN ROUTES =================
 Route::prefix('admin')->name('admin.')->middleware(['auth','isAdmin'])->group(function () {
     // dashboard admin
     Route::get('/', [DashboardController::class, 'dashboard'])->name('dashboard');
