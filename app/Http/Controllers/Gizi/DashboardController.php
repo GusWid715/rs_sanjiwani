@@ -19,6 +19,12 @@ class DashboardController extends Controller
         $totalSelesai  = pesanans::where('status', 'selesai')->count();
         $totalDitolak  = pesanans::where('status', 'ditolak')->count();
 
+        // hitung total pesanan pending
+        $totalPending = pesanans::where('status', 'pending')->count();
+
+        // hitung total pesanan selesai
+        $totalSelesai = pesanans::where('status', 'selesai')->count();
+
         // jumlah menu
         $totalMenus = menus::count();
 
@@ -27,20 +33,18 @@ class DashboardController extends Controller
             ->where('status', 'pending')
             ->orderBy('tanggal', 'desc')
             ->orderBy('created_at', 'desc')
-            ->take(10)
+            ->take(5)
             ->get();
 
         // log aktivitas terbaru (limit 10)
         $recentLogs = log_aktivitas::with('user')
             ->orderByDesc('waktu')
-            ->take(10)
+            ->take(5)
             ->get();
 
         return view('Gizi.dashboard', compact(
             'totalPending',
-            'totalProses',
             'totalSelesai',
-            'totalDitolak',
             'totalMenus',
             'incomingPesanans',
             'recentLogs'

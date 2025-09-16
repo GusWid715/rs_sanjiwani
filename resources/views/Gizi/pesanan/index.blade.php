@@ -1,52 +1,70 @@
-<!doctype html>
-<html lang="id">
-<head>
-  <meta charset="utf-8">
-  <title>Pesanan Masuk - Gizi</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
+@extends('layouts.app')
+
+@section('content')
 <div class="container py-4">
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h3>Pesanan Masuk</h3>
-    <a href="{{ route('gizi.dashboard') }}" class="btn btn-outline-secondary">Kembali ke dashboard</a>
-  </div>
+    <div class="card">
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h3 class="mb-0">Pesanan Masuk (Pending)</h3>
+                <a href="{{ route('gizi.dashboard') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Kembali ke Dashboard
+                </a>
+            </div>
+        </div>
+        <div class="card-body">
+            {{-- Menampilkan pesan sukses --}}
+            @if (session('success'))
+                <div class="alert alert-success" role="alert">
+                    {{ session('success') }}
+                </div>
+            @endif
 
-  <div class="card">
-    <div class="card-body p-0">
-      <table class="table table-hover mb-0">
-        <thead class="table-light">
-          <tr>
-            <th>#</th>
-            <th>User ID</th>
-            <th>Menu ID</th>
-            <th>Jumlah</th>
-            <th>Tanggal</th>
-            <th>Status</th>
-            <th>Ruangan</th>
-          </tr>
-        </thead>
-        <tbody>
-          @forelse($pesanans as $p)
-            <tr>
-              <td>{{ $p->id }}</td>
-              <td>{{ $p->user_id }}</td>
-              <td>{{ $p->menu_id ?? '-' }}</td>
-              <td>{{ $p->jumlah ?? '-' }}</td>
-              <td>{{ \Carbon\Carbon::parse($p->tanggal)->format('Y-m-d') }}</td>
-              <td>{{ $p->status }}</td>
-              <td>{{ $p->ruangan ?? '-' }}</td>
-            </tr>
-          @empty
-            <tr><td colspan="7" class="text-center py-4">Belum ada pesanan.</td></tr>
-          @endforelse
-        </tbody>
-      </table>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Pasien</th>
+                            <th>Menu</th>
+                            <th>Set Makanan</th> {{-- TAMBAHKAN HEADER INI --}}
+                            <th class="text-center">Jumlah</th>
+                            <th>Ruangan</th>
+                            <th>Waktu Pesan</th>
+                            <th class="text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($pesanans as $pesanan)
+                            <tr>
+                                <td><strong>{{ $pesanan->user->name ?? 'N/A' }}</strong></td>
+                                <td>{{ $pesanan->menu->nama_menu ?? 'N/A' }}</td>
+                                {{-- TAMBAHKAN KOLOM INI --}}
+                                <td>
+                                    <span class="text">{{ $pesanan->menu->set->nama_set ?? 'Tanpa Set' }}</span>
+                                </td>
+                                <td class="text-center">{{ $pesanan->jumlah }}</td>
+                                <td>{{ $pesanan->ruangan }}</td>
+                                <td>{{ \Carbon\Carbon::parse($pesanan->tanggal)->format('d M Y, H:i') }}</td>
+                                <td class="text-center">
+                                    <form action="{{ route('gizi.pesanan.approve', $pesanan->id) }}" method="POST" onsubmit="return confirm('Selesaikan pesanan ini?');">
+                                        @csrf
+                                        <button type="submit" class="btn btn-success btn-sm">
+                                            <i class="fas fa-check"></i> Selesaikan
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                {{-- Ubah colspan menjadi 7 --}}
+                                <td colspan="7" class="text-center py-4">
+                                    Tidak ada pesanan yang menunggu persetujuan.
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
-  </div>
-
 </div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+@endsection

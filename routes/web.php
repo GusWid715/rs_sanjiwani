@@ -91,6 +91,7 @@ Route::prefix('gizi')->name('gizi.')->middleware(['auth','isGizi'])->group(funct
 
     // (opsional) link ke fitur yang nanti Anda buat
     Route::get('/pesanan', [\App\Http\Controllers\Gizi\PesananController::class, 'index'])->name('pesanan.index');
+    Route::post('/pesanan/{pesanan}/approve', [\App\Http\Controllers\Gizi\PesananController::class, 'approve'])->name('pesanan.approve');
     Route::resource('sets', SetController::class);
     Route::resource('menus', \App\Http\Controllers\Gizi\MenuController::class);
     Route::get('laporan', [LaporanController::class, 'index'])->name('laporan.index');

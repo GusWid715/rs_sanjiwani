@@ -5,11 +5,12 @@ namespace App\Http\Controllers\Gizi;
 use App\Http\Controllers\Controller;
 use App\Models\sets;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Auth;
+use App\Traits\ActivityLogger; // import trait
 
 class SetController extends Controller
 {
+    use ActivityLogger; // gunakan trait di dalam controller
+
     public function index()
     {
         $sets = sets::latest()->paginate(10);
@@ -28,12 +29,13 @@ class SetController extends Controller
             'deskripsi' => 'nullable|string',
         ]);
 
-        sets::create($request->all());
+        $set = sets::create($request->all());
 
-        Log::info(Auth::user()->name . ' membuat set makanan baru: ' . $request->nama_set);
+        // panggil fungsi log setelah data dibuat
+        $this->logActivity('membuat set baru: ' . $set->nama_set, 'sets', $set->id);
 
         return redirect()->route('gizi.sets.index')
-                        ->with('success', 'Set makanan berhasil ditambahkan.');
+                         ->with('success', 'Set makanan berhasil ditambahkan.');
     }
 
     public function show(sets $set)
@@ -56,25 +58,26 @@ class SetController extends Controller
 
         $set->update($request->all());
 
-        Log::info(Auth::user()->name . ' memperbarui set makanan: ' . $set->nama_set);
+        // panggil fungsi log setelah data diupdate
+        $this->logActivity('memperbarui set: ' . $set->nama_set, 'sets', $set->id);
 
         return redirect()->route('gizi.sets.index')
-                        ->with('success', 'Set makanan berhasil diperbarui.');
+                         ->with('success', 'Set makanan berhasil diperbarui.');
     }
 
     public function destroy(sets $set)
     {
         if ($set->menus()->count() > 0) {
             return redirect()->route('gizi.sets.index')
-                            ->with('error', 'Tidak dapat menghapus set karena masih ada menu yang terhubung.');
+                             ->with('error', 'Tidak dapat menghapus set karena masih ada menu yang terhubung.');
         }
         
-        $nama_set_dihapus = $set->nama_set;
-        $set->delete();
+        // panggil fungsi log sebelum data dihapus
+        $this->logActivity('menghapus set: ' . $set->nama_set, 'sets', $set->id);
         
-        Log::info(Auth::user()->name . ' menghapus set makanan: ' . $nama_set_dihapus);
+        $set->delete();
 
         return redirect()->route('gizi.sets.index')
-                        ->with('success', 'Set makanan berhasil dihapus.');
+                         ->with('success', 'Set makanan berhasil dihapus.');
     }
 }

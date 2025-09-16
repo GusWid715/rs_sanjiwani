@@ -1,6 +1,6 @@
 <?php
 
-namespace App;
+namespace App\Traits;
 
 use App\Models\log_aktivitas; // import model log_aktivitas
 use Illuminate\Support\Facades\Auth; // import Fassad Auth untuk mendapatkan user yang login

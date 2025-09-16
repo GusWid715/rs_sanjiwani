@@ -6,9 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\menus;
 use App\Models\sets; // DIUBAH: dari kategori_makanans ke sets
 use Illuminate\Http\Request;
+use App\Traits\ActivityLogger;
 
 class MenuController extends Controller
 {
+    use ActivityLogger;
+
     // ================== FORM TAMBAH MENU ==================
     public function create(Request $request) // Ditambahkan Request
     {
@@ -36,10 +39,13 @@ class MenuController extends Controller
             $data['image'] = $filename;
         }
 
-        menus::create($data);
+        $menu = menus::create($data);
+
+        // panggil fungsi log setelah data dibuat
+        $this->logActivity('menambah menu baru: ' . $menu->nama_menu, 'menus', $menu->id);
 
         // DIUBAH: route redirect ke gizi
-        return redirect()->route('gizi.menus.index')->with('success', 'Menu berhasil ditambahkan.');
+        return redirect()->route('gizi.sets.show', $menu->set_id)->with('success', 'Menu berhasil ditambahkan.');
     }
 
     // ================== FORM DETAIL MENU ==================
@@ -79,8 +85,11 @@ class MenuController extends Controller
 
         $menu->update($data);
 
+        // panggil fungsi log setelah data diupdate
+        $this->logActivity('memperbarui menu: ' . $menu->nama_menu, 'menus', $menu->id);
+
         // DIUBAH: route redirect ke gizi
-        return redirect()->route('gizi.menus.index')->with('success', 'Menu berhasil diperbarui.');
+        return redirect()->route('gizi.sets.show', $menu->set_id)->with('success', 'Menu berhasil diperbarui.');
     }
 
     // ================== HAPUS MENU ==================
@@ -91,9 +100,12 @@ class MenuController extends Controller
             unlink(public_path('images/' . $menu->image));
         }
         
+        // panggil fungsi log sebelum data dihapus
+        $this->logActivity('menghapus menu: ' . $menu->nama_menu, 'menus', $menu->id);
+
         $menu->delete();
 
         // DIUBAH: route redirect ke gizi
-        return redirect()->route('gizi.menus.index')->with('success', 'Menu berhasil dihapus.');
+        return redirect()->route('gizi.sets.show', $menu->set_id)->with('success', 'Menu berhasil dihapus.');
     }
 }
