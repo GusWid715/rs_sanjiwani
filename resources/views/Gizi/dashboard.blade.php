@@ -18,6 +18,10 @@
     <h3>Dashboard Gizi</h3>
     <div>
       <a href="{{ route('gizi.pesanan.index') }}" class="btn btn-primary">Pesanan Masuk</a>
+      
+      {{-- TOMBOL BARU DITAMBAHKAN DI SINI --}}
+      <a href="{{ route('gizi.sets.index') }}" class="btn btn-outline-secondary">Manajemen Set</a>
+
       <a href="{{ route('gizi.laporan.index') }}" class="btn btn-outline-secondary">Laporan</a>
       <a href="{{ route('gizi.logs.index') }}" class="btn btn-outline-secondary">Log Aktivitas</a>
       <a href="{{ route('logout') }}" onclick="event.preventDefault();document.getElementById('logout-form').submit();" class="btn btn-danger">Logout</a>

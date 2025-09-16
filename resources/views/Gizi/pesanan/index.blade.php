@@ -10,7 +10,7 @@
 <div class="container py-4">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h3>Pesanan Masuk</h3>
-    <a href="{{ route('gizi.dashboard') }}" class="btn btn-outline-secondary">Kembali</a>
+    <a href="{{ route('gizi.dashboard') }}" class="btn btn-outline-secondary">Kembali ke dashboard</a>
   </div>
 
   <div class="card">

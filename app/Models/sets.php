@@ -14,6 +14,6 @@ class sets extends Model
 
     public function menus()
     {
-        return $this->hasMany(menus::class);
+        return $this->hasMany(menus::class, 'set_id');
     }
 }

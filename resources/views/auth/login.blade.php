@@ -11,14 +11,18 @@
                     <form method="POST" action="{{ route('login') }}">
                         @csrf
 
-                        <div class="mb-3">
-                            <label for="name" class="form-label">Nama</label>
-                            <input id="name" type="text" 
-                                class="form-control @error('name') is-invalid @enderror" 
-                                name="name" value="{{ old('name') }}" required autofocus>
-                            @error('name')
-                                <span class="invalid-feedback">{{ $message }}</span>
-                            @enderror
+                        <div class="row mb-3">
+                            <label for="password" class="col-md-4 col-form-label text-md-end">{{ __('Name') }}</label>
+
+                            <div class="col-md-6">
+                                <input id="name" type="text" class="form-control @error('name') is-invalid @enderror" name="name" required autocomplete="current-name">
+
+                                @error('name')
+                                    <span class="invalid-feedback" role="alert">
+                                        <strong>{{ $message }}</strong>
+                                    </span>
+                                @enderror
+                            </div>
                         </div>
 
                         <div class="row mb-3">

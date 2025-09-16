@@ -14,6 +14,7 @@ use App\Http\Controllers\Gizi\DashboardController as GiziDashboardController;
 use App\Http\Controllers\Gizi\LaporanController;
 use App\Http\Controllers\Gizi\LogController;
 use App\Http\Controllers\User\UserController as UserController;
+use App\Http\Controllers\Gizi\SetController;
 use App\Http\Controllers\User\PesananController as UserPesananController;
 // (optional) manager controllers if nanti dipakai
 use App\Http\Controllers\Manager\PesananController as ManagerPesananController;
@@ -77,7 +78,6 @@ Route::prefix('admin')->name('admin.')->middleware(['auth','isAdmin'])->group(fu
     Route::resource('users', AdminController::class);
 
     // resource controller untuk manajemen menu (CRUD) - buat controller nanti jika belum ada
-    Route::resource('menus', MenuController::class);
 });
 
 
@@ -91,6 +91,8 @@ Route::prefix('gizi')->name('gizi.')->middleware(['auth','isGizi'])->group(funct
 
     // (opsional) link ke fitur yang nanti Anda buat
     Route::get('/pesanan', [\App\Http\Controllers\Gizi\PesananController::class, 'index'])->name('pesanan.index');
+    Route::resource('sets', SetController::class);
+    Route::resource('menus', \App\Http\Controllers\Gizi\MenuController::class);
     Route::get('laporan', [LaporanController::class, 'index'])->name('laporan.index');
     Route::get('laporan/export', [LaporanController::class, 'export'])->name('laporan.export');
     Route::get('logs', [LogController::class, 'index'])->name('logs.index');

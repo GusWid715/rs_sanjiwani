@@ -11,7 +11,7 @@ class IsGizi
     /**
      * Handle an incoming request.
      * - jika belum login -> redirect ke login
-     * - jika bukan admin -> redirect ke home dengan pesan error (atau abort 403, lihat komentar)
+     * - jika bukan gizi -> redirect ke home dengan pesan error (atau abort 403, lihat komentar)
      */
     public function handle(Request $request, Closure $next)
     {
@@ -22,7 +22,7 @@ class IsGizi
 
         $user = Auth::user();
 
-        // cek role, sesuaikan string 'admin'
+        // cek role, sesuaikan string 'gizi'
         if ($user->role !== 'gizi') {
             // redirect ke homepage
             return redirect('/')->with('error', 'Anda tidak memiliki akses ke halaman gizi.');
