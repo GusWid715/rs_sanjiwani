@@ -1,60 +1,65 @@
+{{-- resources/views/user/dashboard.blade.php --}}
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Dashboard Pasien - RS Sanjiwani</title>
+  <title>Dashboard User - RS Sanjiwani</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    .menu-card img {
+      width: 100%;
+      height: 180px;   /* samakan ukuran gambar */
+      object-fit: cover;
+      border-radius: 8px;
+    }
+  </style>
 </head>
 <body>
 <div class="container py-4">
 
-    {{-- Navbar sederhana --}}
-    <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4 rounded">
-      <div class="container-fluid">
-        <a class="navbar-brand" href="{{ route('user.dashboard') }}">RS Sanjiwani</a>
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h3>Selamat Datang, {{ Auth::user()->nama_lengkap ?? Auth::user()->username }}</h3>
+    <div>
+      <a href="{{ route('user.pesanan.index') }}" class="btn btn-outline-primary">Lihat Pesanan</a>
+      <form action="{{ route('logout') }}" method="POST" class="d-inline">
+        @csrf
+        <button type="submit" class="btn btn-outline-danger">Logout</button>
+      </form>
+    </div>
+  </div>
 
-        <div class="d-flex">
-          {{-- Tombol logout --}}
-          <form action="{{ route('logout') }}" method="POST" class="d-inline">
-            @csrf
-            <button type="submit" class="btn btn-outline-danger btn-sm">
-              Logout
-            </button>
-          </form>
+  {{-- Alerts --}}
+  @if(session('success'))
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+      {{ session('success') }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  @endif
+  @if(session('error'))
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+      {{ session('error') }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  @endif
+
+  <h4 class="mb-3">Daftar Menu</h4>
+    <div class="row g-3">
+      @foreach($menus as $menu)
+        <div class="card">
+          <img src="{{ asset('images/' . $menu->image) }}" class="card-img-top" style="height:200px;object-fit:cover;">
+          <div class="card-body text-center">
+            <h5 class="card-title">{{ $menu->nama_menu }}</h5>
+            <p>{{ $menu->deskripsi }}</p>
+            <a href="{{ route('user.pesanan.create', ['menu_id' => $menu->id]) }}" class="btn btn-primary">
+              Buat Pesanan
+            </a>
+          </div>
         </div>
-      </div>
-    </nav>
-
-    {{-- Konten dashboard --}}
-    <h2>Selamat datang, {{ Auth::user()->nama_lengkap ?? Auth::user()->username }}</h2>
-
-    <p class="text-muted">Anda login sebagai <strong>{{ Auth::user()->role }}</strong></p>
-
-    <div class="row">
-        <div class="col-md-6">
-            <div class="card shadow-sm mb-3">
-                <div class="card-body">
-                    <h5 class="card-title">Pesanan Saya</h5>
-                    <p class="card-text">Lihat dan kelola pesanan Anda.</p>
-                    <a href="{{ route('user.pesanan.index') }}" class="btn btn-primary">Lihat Pesanan</a>
-                    <a href="{{ route('user.pesanan.create') }}" class="btn btn-success">Buat Pesanan Baru</a>
-                </div>
-            </div>
-        </div>
-
-        {{-- Tambahan menu lain sesuai kebutuhan --}}
-        <div class="col-md-6">
-            <div class="card shadow-sm mb-3">
-                <div class="card-body">
-                    <h5 class="card-title">Profil</h5>
-                    <p class="card-text">Informasi akun Anda.</p>
-                    <p><strong>Nama:</strong> {{ Auth::user()->nama_lengkap }}</p>
-                    <p><strong>Username:</strong> {{ Auth::user()->username }}</p>
-                </div>
-            </div>
-        </div>
+      @endforeach
     </div>
 
 </div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

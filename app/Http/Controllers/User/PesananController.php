@@ -3,148 +3,118 @@
 namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
-use App\Models\Detail_pesanans;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use App\Models\Log_aktivitas;
-use App\Models\menus;
+use Illuminate\Http\Request;
 use App\Models\pesanans;
+use App\Models\menus;
 
 class PesananController extends Controller
 {
-    // Tampilkan daftar pesanan milik user yang login
+    // ================== LIST PESANAN ==================
     public function index()
     {
-        $userId = Auth::id();
-        $pesanan = pesanans::where('user_id', $userId)
-                    ->with('detailPesanans.menu')
-                    ->orderByDesc('created_at')
-                    ->paginate(10);
+        $userId = Auth::id(); // id user yang login
+        $pesanans = pesanans::where('user_id', $userId)
+                            ->latest()
+                            ->paginate(10);
 
-        return view('user.pesanan.index', compact('pesanan'));
+        return view('user.pesanan.index', compact('pesanans'));
     }
 
-    // Form create (bisa dengan ?menu_id= untuk prefill)
+    // ================== FORM BUAT PESANAN ==================
     public function create(Request $request)
-    {
-        // Ambil semua menu yg stok > 0
-        $menus = menus::where('stok', '>', 0)->orderBy('nama_menu')->get();
-        $prefillMenuId = $request->query('menu_id');
+{
+    $menuId = $request->get('menu_id');
+    $menu = $menuId ? \App\Models\menus::find($menuId) : null;
+    $menus = \App\Models\menus::all(); // untuk dropdown semua menu
+    $selectedMenu = null;
+        if ($menuId) {
+            $selectedMenu = Menus::findOrFail($menuId);
+        }
 
-        return view('user.pesanan.create', compact('menus', 'prefillMenuId'));
-    }
+    return view('user.pesanan.create', compact('menu', 'menus', 'selectedMenu'));
+}
 
-    // Simpan pesanan
+
+    // ================== SIMPAN PESANAN ==================
     public function store(Request $request)
     {
         $request->validate([
-            'items' => 'required|array|min:1',
-            'items.*.menu_id' => 'required|integer|exists:menus,id',
-            'items.*.jumlah' => 'required|integer|min:1',
-            'catatan' => 'nullable|string|max:1000'
-        ], [
-            'items.required' => 'Silakan pilih minimal 1 item menu.',
-            'items.*.menu_id.exists' => 'Menu tidak tersedia.'
+            'menu_id'   => 'required|exists:menus,id',
+            'jumlah'    => 'required|integer|min:1',
+            'ruangan'   => 'nullable|string|max:100',
         ]);
 
-        $userId = Auth::id();
+        pesanans::create([
+            'user_id'   => Auth::id(),
+            'menu_id'   => $request->menu_id,
+            'jumlah'    => $request->jumlah,
+            'ruangan'   => $request->ruangan,
+            'status'    => 'pending', // default
+        ]);
 
-        DB::beginTransaction();
-        try {
-            // buat header pesanan
-            $pesanan = pesanans::create([
-                'user_id' => $userId,
-                'status' => 'pending',
-                'catatan' => $request->input('catatan')
-            ]);
-
-            // insert detail_pesanans & update stok (opsional)
-            foreach ($request->input('items') as $row) {
-                $menuId = (int)$row['menu_id'];
-                $jumlah = (int)$row['jumlah'];
-
-                // cek stok sederhana
-                $menu = menus::lockForUpdate()->find($menuId);
-                if (!$menu) {
-                    throw new \Exception("Menu ID {$menuId} tidak ditemukan.");
-                }
-                if ($menu->stok < $jumlah) {
-                    throw new \Exception("Stok untuk menu '{$menu->nama_menu}' tidak cukup.");
-                }
-
-                // insert detail
-                Detail_pesanans::create([
-                    'pesanan_id' => $pesanan->id,
-                    'menu_id' => $menuId,
-                    'jumlah' => $jumlah
-                ]);
-
-                // kurangi stok (opsional, kalau mau track stok)
-                $menu->stok = $menu->stok - $jumlah;
-                $menu->save();
-            }
-
-            // log aktivitas
-            Log_aktivitas::create([
-                'user_id' => $userId,
-                'aktivitas' => 'Membuat pesanan baru',
-                'entity' => 'pesanan',
-                'entity_id' => $pesanan->id
-            ]);
-
-            DB::commit();
-
-            return redirect()->route('user.pesanan.show', $pesanan->id)
-                ->with('success', 'Pesanan berhasil dibuat.');
-        } catch (\Throwable $e) {
-            DB::rollBack();
-            return back()->withInput()->withErrors(['error' => $e->getMessage()]);
-        }
+        return redirect()->route('user.pesanan.index')
+                        ->with('success', 'Pesanan berhasil dibuat.');
     }
 
-    // Tampilkan detail pesanan
-    public function show($id)
+    // ================== DETAIL PESANAN ==================
+    public function show(pesanans $pesanan)
     {
-        $pesanan = pesanans::with('detailPesanans.menu', 'user')->findOrFail($id);
-
-        // pastikan milik user yg login (keamanan)
         if ($pesanan->user_id !== Auth::id()) {
-            abort(403, 'Unauthorized');
+            abort(403); // tidak boleh lihat pesanan orang lain
         }
 
         return view('user.pesanan.show', compact('pesanan'));
     }
 
-    // Optional: batalkan pesanan (jika masih pending)
-    public function destroy($id)
+    // ================== EDIT PESANAN ==================
+    public function edit(pesanans $pesanan)
     {
-        $pesanan = pesanans::findOrFail($id);
-        if ($pesanan->user_id !== Auth::id()) abort(403);
-
-        if (!in_array($pesanan->status, ['pending'])) {
-            return back()->withErrors(['error' => 'Hanya pesanan dengan status pending yang bisa dibatalkan.']);
+        if ($pesanan->user_id !== Auth::id()) {
+            abort(403);
         }
 
-        DB::transaction(function() use($pesanan) {
-            // kembalikan stok
-            foreach ($pesanan->detailPesanans as $d) {
-                $menu = menus::find($d->menu_id);
-                if ($menu) {
-                    $menu->stok += $d->jumlah;
-                    $menu->save();
-                }
-            }
-            $pesanan->delete();
+        $menus = menus::all();
+        return view('user.pesanan.edit', compact('pesanan', 'menus'));
+    }
 
-            Log_aktivitas::create([
-                'user_id' => Auth::id(),
-                'aktivitas' => 'Membatalkan pesanan',
-                'entity' => 'pesanan',
-                'entity_id' => $pesanan->id
-            ]);
-        });
+    // ================== UPDATE PESANAN ==================
+    public function update(Request $request, pesanans $pesanan)
+    {
+        if ($pesanan->user_id !== Auth::id()) {
+            abort(403);
+        }
 
-        return redirect()->route('user.pesanan.index')->with('success', 'Pesanan dibatalkan.');
+        $request->validate([
+            'menu_id'   => 'required|exists:menus,id',
+            'jumlah'    => 'required|integer|min:1',
+            'alamat'    => 'required|string|max:255',
+            'ruangan'   => 'nullable|string|max:100',
+            'no_ruangan'=> 'nullable|string|max:20',
+        ]);
+
+        $pesanan->update([
+            'menu_id'   => $request->menu_id,
+            'jumlah'    => $request->jumlah,
+            'alamat'    => $request->alamat,
+            'ruangan'   => $request->ruangan,
+            'no_ruangan'=> $request->no_ruangan,
+        ]);
+
+        return redirect()->route('user.pesanan.index')
+                         ->with('success', 'Pesanan berhasil diperbarui.');
+    }
+
+    // ================== HAPUS PESANAN ==================
+    public function destroy(pesanans $pesanan)
+    {
+        if ($pesanan->user_id !== Auth::id()) {
+            abort(403);
+        }
+
+        $pesanan->delete();
+
+        return redirect()->route('user.pesanan.index')
+                         ->with('success', 'Pesanan berhasil dihapus.');
     }
 }

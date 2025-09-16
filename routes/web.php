@@ -3,12 +3,16 @@
 use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\MenuController;
+use App\Http\Controllers\User\PesananController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 
 // Controllers
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
+use App\Http\Controllers\Gizi\DashboardController as GiziDashboardController;
+use App\Http\Controllers\Gizi\LaporanController;
+use App\Http\Controllers\Gizi\LogController;
 use App\Http\Controllers\User\UserController as UserController;
 use App\Http\Controllers\User\PesananController as UserPesananController;
 // (optional) manager controllers if nanti dipakai
@@ -56,16 +60,11 @@ Route::get('/home', function () {
 // ----------------------
 // USER (pasien) routes
 // ----------------------
-Route::prefix('user')->name('user.')->middleware(['auth','isUser'])->group(function () {
-    Route::get('/', function () {
-        return redirect()->route('user.dashboard');
-    });
-
-    // Dashboard pasien
+Route::middleware(['auth','isUser'])->prefix('user')->name('user.')->group(function () {
     Route::get('/dashboard', [UserController::class, 'index'])->name('dashboard');
-
-    // Resource routes untuk pesanan pasien: index, create, store, show, destroy, etc.
-    Route::resource('pesanan', UserPesananController::class);
+    Route::get('/user/pesanan/create/{menuId?}', [PesananController::class, 'create'])
+    ->name('user.pesanan.create');
+    Route::resource('pesanan', PesananController::class);
 });
 
 
@@ -86,10 +85,13 @@ Route::prefix('admin')->name('admin.')->middleware(['auth','isAdmin'])->group(fu
 // MANAGER routes (opsional)
 // ----------------------
 // Jika ingin aktifkan manager, pastikan middleware isManager terdaftar dan controllers ada.
-// Route::prefix('manager')->name('manager.')->middleware(['auth','isManager'])->group(function () {
-//     Route::get('/', function () {
-//         return redirect()->route('manager.dashboard');
-//     });
-//     Route::get('/dashboard', [ManagerDashboardController::class, 'index'])->name('dashboard');
-//     Route::resource('pesanan', ManagerPesananController::class)->only(['index','show','update']);
-// });
+
+Route::prefix('gizi')->name('gizi.')->middleware(['auth','isGizi'])->group(function () {
+    Route::get('/', [GiziDashboardController::class, 'dashboard'])->name('dashboard');
+
+    // (opsional) link ke fitur yang nanti Anda buat
+    Route::get('/pesanan', [\App\Http\Controllers\Gizi\PesananController::class, 'index'])->name('pesanan.index');
+    Route::get('laporan', [LaporanController::class, 'index'])->name('laporan.index');
+    Route::get('laporan/export', [LaporanController::class, 'export'])->name('laporan.export');
+    Route::get('logs', [LogController::class, 'index'])->name('logs.index');
+});

@@ -68,8 +68,17 @@ class MenuController extends Controller
             'nama_menu' => 'required|string|max:100', // nama menu wajib, max 100 karakter
             'kategori_id' => 'required|exists:kategori_menus,id', // kategori harus ada di tabel kategori_menus
             'deskripsi' => 'nullable|string', // deskripsi boleh kosong
+            'image' => 'nullable|image|mimes:jpg,jpeg,png,gif|max:2048', // tipe gambar yang dapat diterima jpg,jpeg,png,gif
             'stok' => 'required|integer|min:0', // stok wajib, harus angka >= 0
         ]);
+
+        $data = $request->only(['nama_menu', 'kategori_id', 'deskripsi', 'stok']);
+
+        if ($request->hasFile('image')) {
+            $filename = time() . '.' . $request->image->extension();
+            $request->image->move(public_path('images'), $filename);
+            $data['image'] = $filename;
+        }
 
         // Simpan data menu baru ke database
         menus::create($data);
@@ -98,23 +107,37 @@ class MenuController extends Controller
         return view('admin.menus.edit', compact('menu','kategoris'));
     }
 
-    // ================== UPDATE DATA MENU ==================
-    public function update(Request $request, menus $menu)
-    {
-        // Validasi input form
-        $data = $request->validate([
-            'nama_menu' => 'required|string|max:100', // nama menu wajib
-            'kategori_id' => 'required|exists:kategori_menus,id', // kategori harus valid
-            'deskripsi' => 'nullable|string', // deskripsi boleh kosong
-            'stok' => 'required|integer|min:0', // stok wajib
-        ]);
+// ================== UPDATE DATA MENU ==================
+public function update(Request $request, menus $menu)
+{
+    // Validasi input form
+    $data = $request->validate([
+        'nama_menu'   => 'required|string|max:100', 
+        'kategori_id' => 'required|exists:kategori_menus,id', 
+        'deskripsi'   => 'nullable|string',
+        'stok'        => 'required|integer|min:0',
+        'image'       => 'nullable|image|mimes:jpg,jpeg,png,gif|max:2048',
+    ]);
 
-        // Update data menu di database
-        $menu->update($data);
+    // Jika ada file gambar baru
+    if ($request->hasFile('image')) {
+        // Hapus gambar lama jika ada
+        if ($menu->image && file_exists(public_path('images/' . $menu->image))) {
+            unlink(public_path('images/' . $menu->image));
+        }
 
-        // Redirect ke halaman index dengan pesan sukses
-        return redirect()->route('admin.menus.index')->with('success', 'Menu berhasil diperbarui.');
+        // Simpan gambar baru
+        $filename = time() . '.' . $request->image->extension();
+        $request->image->move(public_path('images'), $filename);
+        $data['image'] = $filename;
     }
+
+    // Update ke database
+    $menu->update($data);
+
+    return redirect()->route('admin.menus.index')->with('success', 'Menu berhasil diperbarui.');
+}
+
 
     // ================== FORM HAPUS MENU ==================
     public function destroy(menus $menu)

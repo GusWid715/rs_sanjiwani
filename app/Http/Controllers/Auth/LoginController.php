@@ -12,7 +12,7 @@ class LoginController extends Controller
 
     public function username()
     {
-        return 'username';
+        return 'name';
     }
 
     /**
@@ -22,8 +22,8 @@ class LoginController extends Controller
     {
         $user = Auth::user();
 
-        if ($user->role === 'admin') {
-            return '/admin'; // nanti kita buat route admin
+        if ($user->role === 'gizi') {
+            return '/gizi'; // nanti kita buat route admin
         }
 
         if ($user->role === 'pasien') {

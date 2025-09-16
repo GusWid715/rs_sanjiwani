@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
             // alias => class
             'isAdmin' => \App\Http\Middleware\IsAdmin::class,
             'isUser'    => \App\Http\Middleware\IsUser::class,
+            'isGizi' => \App\Http\Middleware\IsGizi::class,
         ]);
     })
 

@@ -1,50 +1,67 @@
-{{-- resources/views/User/pesanan/index.blade.php --}}
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Daftar Pesanan - RS Sanjiwani</title>
+  <title>Pesanan Saya</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
 <div class="container py-4">
-  <h2>Daftar Pesanan Saya</h2>
+  <h3>Pesanan Saya</h3>
 
   @if(session('success'))
-    <div class="alert alert-success">{{ session('success') }}</div>
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+      {{ session('success') }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
   @endif
 
-  @if($pesanan->isEmpty())
-    <div class="alert alert-info">Belum ada pesanan.</div>
-  @else
-    <table class="table table-striped">
-      <thead><tr><th>#</th><th>Tanggal</th><th>Status</th><th>Catatan</th><th>Aksi</th></tr></thead>
-      <tbody>
-      @foreach($pesanan as $p)
+  <a href="{{ route('user.pesanan.create') }}" class="btn btn-primary mb-3">Buat Pesanan Baru</a>
+
+  <table class="table table-bordered table-hover">
+    <thead class="table-light">
+      <tr>
+        <th>#</th>
+        <th>Menu</th>
+        <th>Jumlah</th>
+        <th>Alamat</th>
+        <th>Ruangan</th>
+        <th>Status</th>
+        <th>Aksi</th>
+      </tr>
+    </thead>
+    <tbody>
+      @forelse($pesanans as $p)
         <tr>
           <td>{{ $p->id }}</td>
-          <td>{{ $p->created_at ?? $p->tanggal }}</td>
-          <td>{{ ucfirst($p->status) }}</td>
-          <td>{{ \Illuminate\Support\Str::limit($p->catatan, 50) }}</td>
+          <td>{{ $p->menu->nama_menu ?? '-' }}</td>
+          <td>{{ $p->jumlah }}</td>
+          <td>{{ $p->alamat }}</td>
+          <td>{{ $p->ruangan }} {{ $p->no_ruangan }}</td>
+          <td><span class="badge bg-info">{{ ucfirst($p->status) }}</span></td>
           <td>
-            <a href="{{ route('user.pesanan.show', $p->id) }}" class="btn btn-sm btn-primary">Lihat</a>
-            @if($p->status === 'pending')
-              <form action="{{ route('user.pesanan.destroy', $p->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Batalkan pesanan?')">
-                @csrf
-                @method('DELETE')
-                <button class="btn btn-sm btn-danger">Batal</button>
-              </form>
-            @endif
+            <a href="{{ route('user.pesanan.show', $p->id) }}" class="btn btn-sm btn-outline-primary">Detail</a>
+            <a href="{{ route('user.pesanan.edit', $p->id) }}" class="btn btn-sm btn-outline-warning">Edit</a>
+            <form action="{{ route('user.pesanan.destroy', $p->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Hapus pesanan ini?')">
+              @csrf
+              @method('DELETE')
+              <button class="btn btn-sm btn-outline-danger">Hapus</button>
+            </form>
           </td>
         </tr>
-      @endforeach
-      </tbody>
-    </table>
+      @empty
+        <tr>
+          <td colspan="7" class="text-center">Belum ada pesanan.</td>
+        </tr>
+      @endforelse
+    </tbody>
+  </table>
 
-    {{ $pesanan->links() }}
-  @endif
-
-  <a href="{{ route('user.pesanan.create') }}" class="btn btn-success mt-3">Buat Pesanan Baru</a>
+  <div class="mt-3">
+    {{ $pesanans->links() }}
+  </div>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

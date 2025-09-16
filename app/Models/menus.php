@@ -3,28 +3,30 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class menus extends Model
 {
-    use HasFactory;
-
-    protected $table = 'menus'; // sesuai SQL dump (bukan 'menus')
-
+    protected $table = 'menus';
     protected $fillable = [
+        'set_id',
         'nama_menu',
-        'kategori_id',
         'deskripsi',
         'stok',
+        'image',
     ];
 
-    public function kategori()
+    public function set()
     {
-        return $this->belongsTo(kategori_makanans::class, 'kategori_id', 'id');
+        return $this->belongsTo(sets::class);
     }
 
-    public function detailPesanan()
+    public function pesanans()
     {
-        return $this->hasMany(detail_pesanans::class, 'menu_id');
+        return $this->hasMany(Pesanans::class);
+    }
+
+    public function detailPesanans()
+    {
+        return $this->hasMany(detail_pesanans::class);
     }
 }

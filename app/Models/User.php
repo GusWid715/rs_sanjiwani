@@ -4,19 +4,17 @@ namespace App\Models;
 
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable;
-
+    use Notifiable;
     protected $table = 'users';
 
     protected $fillable = [
-        'username',
+        'name',
         'password',
         'role',
-        'nama_lengkap',
+        'remember_token',
     ];
 
     protected $hidden = [
@@ -24,15 +22,13 @@ class User extends Authenticatable
         'remember_token',
     ];
 
-    // Relasi: user punya banyak pesanan
-    public function pesanan()
+    public function pesanans()
     {
-        return $this->hasMany(pesanans::class, 'user_id');
+        return $this->hasMany(pesanans::class);
     }
 
-    // Relasi: user punya banyak log aktivitas
-    public function logAktivitas()
+    public function logs()
     {
-        return $this->hasMany(log_aktivitas::class, 'user_id');
+        return $this->hasMany(log_aktivitas::class);
     }
 }

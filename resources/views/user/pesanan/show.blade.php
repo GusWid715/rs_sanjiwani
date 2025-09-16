@@ -1,30 +1,36 @@
-{{-- resources/views/User/pesanan/show.blade.php --}}
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Detail Pesanan #{{ $pesanan->id }} - RS Sanjiwani</title>
+  <title>Detail Pesanan</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
 <div class="container py-4">
-  <h2>Detail Pesanan #{{ $pesanan->id }}</h2>
+  <h3>Detail Pesanan #{{ $pesanan->id }}</h3>
 
-  <p><strong>Tanggal:</strong> {{ $pesanan->created_at ?? $pesanan->tanggal }}</p>
-  <p><strong>Status:</strong> {{ ucfirst($pesanan->status) }}</p>
-  <p><strong>Catatan:</strong> {{ $pesanan->catatan ?? '-' }}</p>
-
-  <h4>Item</h4>
   <table class="table table-bordered">
-    <thead><tr><th>Menu</th><th>Jumlah</th></tr></thead>
-    <tbody>
-      @foreach($pesanan->detailPesanans as $d)
-        <tr>
-          <td>{{ $d->menu->nama_menu ?? '—' }}</td>
-          <td>{{ $d->jumlah }}</td>
-        </tr>
-      @endforeach
-    </tbody>
+    <tr>
+      <th>Menu</th>
+      <td>{{ $pesanan->menu->nama_menu ?? '-' }}</td>
+    </tr>
+    <tr>
+      <th>Jumlah</th>
+      <td>{{ $pesanan->jumlah }}</td>
+    </tr>
+    <tr>
+      <th>Alamat</th>
+      <td>{{ $pesanan->alamat }}</td>
+    </tr>
+    <tr>
+      <th>Ruangan</th>
+      <td>{{ $pesanan->ruangan }} {{ $pesanan->no_ruangan }}</td>
+    </tr>
+    <tr>
+      <th>Status</th>
+      <td><span class="badge bg-info">{{ ucfirst($pesanan->status) }}</span></td>
+    </tr>
   </table>
 
   <a href="{{ route('user.pesanan.index') }}" class="btn btn-secondary">Kembali</a>

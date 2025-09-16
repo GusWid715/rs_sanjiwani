@@ -10,24 +10,37 @@
 <body>
 <div class="container py-4">
   <h3>Edit Menu: {{ $menu->nama_menu }}</h3>
+
+  {{-- Error Messages --}}
   @if($errors->any())
-    <div class="alert alert-danger"><ul class="mb-0">@foreach($errors->all() as $e)<li>{{ $e }}</li>@endforeach</ul></div>
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+      <ul class="mb-0">
+        @foreach($errors->all() as $e)
+          <li>{{ $e }}</li>
+        @endforeach
+      </ul>
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
   @endif
 
-  <form action="{{ route('admin.menus.update', $menu->id) }}" method="POST" class="card card-body">
+  {{-- Form Update --}}
+  <form action="{{ route('admin.menus.update', $menu->id) }}" method="POST" enctype="multipart/form-data">
     @csrf
     @method('PUT')
 
     <div class="mb-3">
       <label class="form-label">Nama Menu</label>
-      <input type="text" name="nama_menu" class="form-control" value="{{ old('nama_menu', $menu->nama_menu) }}" required>
+      <input type="text" name="nama_menu" class="form-control" 
+             value="{{ old('nama_menu', $menu->nama_menu) }}" required>
     </div>
 
     <div class="mb-3">
       <label class="form-label">Kategori</label>
       <select name="kategori_id" class="form-select" required>
         @foreach($kategoris as $k)
-          <option value="{{ $k->id }}" {{ old('kategori_id', $menu->kategori_id) == $k->id ? 'selected' : '' }}>{{ $k->nama_kategori }}</option>
+          <option value="{{ $k->id }}" {{ old('kategori_id', $menu->kategori_id) == $k->id ? 'selected' : '' }}>
+            {{ $k->nama_kategori }}
+          </option>
         @endforeach
       </select>
     </div>
@@ -38,12 +51,23 @@
     </div>
 
     <div class="mb-3">
+      <label for="image" class="form-label">Gambar</label>
+      <input type="file" name="image" class="form-control" accept="image/*">
+      @if($menu->image)
+        <div class="mt-2">
+          <img src="{{ asset('images/' . $menu->image) }}" alt="Preview" width="120" class="img-thumbnail">
+        </div>
+      @endif
+    </div>
+
+    <div class="mb-3">
       <label class="form-label">Stok</label>
-      <input type="number" name="stok" class="form-control" min="0" value="{{ old('stok', $menu->stok) }}" required>
+      <input type="number" name="stok" class="form-control" min="0" 
+             value="{{ old('stok', $menu->stok) }}" required>
     </div>
 
     <div class="d-flex gap-2">
-      <button class="btn btn-primary">Simpan</button>
+      <button type="submit" class="btn btn-primary">Simpan</button>
       <a href="{{ route('admin.menus.index') }}" class="btn btn-secondary">Batal</a>
     </div>
   </form>
