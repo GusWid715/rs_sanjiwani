@@ -13,41 +13,51 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class LaporanController extends Controller
 {
-    use ActivityLogger; // trait untuk log aktivitas
+    use ActivityLogger; // menggunakan trait untuk log
 
     public function index(Request $request)
     {
         // mengambil filter tanggal dan status
-        $end = $request->input('end_date') ? Carbon::parse($request->input('end_date'))->endOfDay() : Carbon::now()->endOfDay();
-        $start = $request->input('start_date') ? Carbon::parse($request->input('start_date'))->startOfDay() : Carbon::now()->subDays(6)->startOfDay();
+        $start = $request->input('start_date') ? Carbon::parse($request->input('start_date'))->startOfDay() : null;
+        $end = $request->input('end_date') ? Carbon::parse($request->input('end_date'))->endOfDay() : null;
         $status = $request->input('status');
 
-        // query dasar ke model Pesanan
-        $query = Pesanan::query()->whereBetween('tanggal', [$start, $end]);
+        $query = Pesanan::query();
 
+        // hanya terapkan filter tanggal jika kedua tanggal diisi
+        if ($start && $end) {
+            $query->whereBetween('tanggal', [$start, $end]);
+        }
+
+        // terapkan filter status jika diisi
         if (!empty($status)) {
             $query->where('status', $status);
         }
 
-        // mengambil data pesanan beserta relasinya (nama ruang rawat & nama paket)
+        // mengambil data pesanan beserta relasinya
         $pesanan = $query->with(['ruangRawat', 'paketMakanan'])->orderByDesc('tanggal')->get();
 
-        // menghitung total dan ringkasan per status dari data yang sudah diambil
+        // menghitung total dan ringkasan per status
         $total = $pesanan->count();
         $byStatus = $pesanan->groupBy('status')->mapWithKeys(function ($group, $key) {
             return [$key => (object)['total' => $group->count()]];
         });
 
-        // menghitung top paket makanan
-        $totalsByPaket = DB::table('pesanan')
-            ->select('paket_makanan_id', DB::raw('COUNT(*) as total_pesanan'))
-            ->whereBetween('tanggal', [$start, $end])
+        // memulai query untuk top paket makanan
+        $totalsByPaketQuery = DB::table('pesanan')
+            ->select('paket_makanan_id', DB::raw('COUNT(*) as total_pesanan'));
+        
+        if ($start && $end) {
+            $totalsByPaketQuery->whereBetween('tanggal', [$start, $end]);
+        }
+
+        $totalsByPaket = $totalsByPaketQuery
             ->when(!empty($status), fn($q) => $q->where('status', '!=', 'batal'))
             ->groupBy('paket_makanan_id')
             ->orderByDesc('total_pesanan')
             ->get();
             
-        // mengambil detail paket makanan untuk ditampilkan namanya
+        // mengambil detail paket makanan
         $paketIds = $totalsByPaket->pluck('paket_makanan_id')->filter()->unique()->values()->all();
         $paketMakanan = [];
         if (!empty($paketIds)) {
@@ -58,31 +68,41 @@ class LaporanController extends Controller
         return view('Gizi.laporan.index', compact('pesanan', 'total', 'byStatus', 'totalsByPaket', 'paketMakanan', 'start', 'end', 'status'));
     }
 
-    // fungsi untuk ekspor laporan ke CSV
+    // fungsi untuk ekspor laporan ke file CSV
     public function export(Request $request)
     {
         // mengambil filter tanggal dan status
-        $end = $request->input('end_date') ? Carbon::parse($request->input('end_date'))->endOfDay() : Carbon::now()->endOfDay();
-        $start = $request->input('start_date') ? Carbon::parse($request->input('start_date'))->startOfDay() : Carbon::now()->subDays(6)->startOfDay();
+        $start = $request->input('start_date') ? Carbon::parse($request->input('start_date'))->startOfDay() : null;
+        $end = $request->input('end_date') ? Carbon::parse($request->input('end_date'))->endOfDay() : null;
         $status = $request->input('status');
 
         // Query data pesanan dengan join untuk mendapatkan nama
         $query = DB::table('pesanan')
             ->join('ruang_rawat', 'pesanan.ruang_rawat_id', '=', 'ruang_rawat.id')
             ->join('paket_makanan', 'pesanan.paket_makanan_id', '=', 'paket_makanan.id')
-            ->select('ruang_rawat.nama_ruang', 'ruang_rawat.lokasi', 'paket_makanan.nama_paket', 'pesanan.tanggal', 'pesanan.status')
-            ->whereBetween('pesanan.tanggal', [$start, $end]);
+            // TAMBAHKAN 'pesanan.alasan_batal' DI SINI
+            ->select('ruang_rawat.nama_ruang', 'ruang_rawat.lokasi', 'paket_makanan.nama_paket', 'pesanan.tanggal', 'pesanan.status', 'pesanan.alasan_batal')
+            ->orderBy('pesanan.tanggal');
         
+        if ($start && $end) {
+            $query->whereBetween('pesanan.tanggal', [$start, $end]);
+        }
+
         if (!empty($status)) {
             $query->where('pesanan.status', $status);
         }
-        $pesananRows = $query->orderBy('pesanan.tanggal')->cursor();
+        $pesananRows = $query->cursor();
 
         // Query untuk Top Paket Makanan
-        $topPaketRows = DB::table('pesanan')
+        $topPaketRowsQuery = DB::table('pesanan')
             ->join('paket_makanan', 'pesanan.paket_makanan_id', '=', 'paket_makanan.id')
-            ->select('paket_makanan.nama_paket', DB::raw('COUNT(pesanan.id) as total_pesanan'))
-            ->whereBetween('pesanan.tanggal', [$start, $end])
+            ->select('paket_makanan.nama_paket', DB::raw('COUNT(pesanan.id) as total_pesanan'));
+        
+        if ($start && $end) {
+            $topPaketRowsQuery->whereBetween('pesanan.tanggal', [$start, $end]);
+        }
+        
+        $topPaketRows = $topPaketRowsQuery
             ->when(!empty($status), fn($q) => $q->where('status', '!=', 'batal'))
             ->groupBy('paket_makanan.nama_paket')
             ->orderByDesc('total_pesanan')
@@ -91,14 +111,14 @@ class LaporanController extends Controller
         // mencatat aktivitas ke log
         $this->logActivity('mengekspor laporan pesanan', 'laporan', 0);
 
-        $filename = 'laporan_pesanan_' . $start->format('Ymd') . '-' . $end->format('Ymd') . '.csv';
+        $filename = 'laporan_pesanan_' . ($start ? $start->format('Ymd') : 'semua') . '-' . ($end ? $end->format('Ymd') : 'semua') . '.csv';
 
         // membuat response untuk men-download file
         return new StreamedResponse(function () use ($pesananRows, $topPaketRows) {
             $handle = fopen('php://output', 'w');
 
             // Header untuk tabel utama
-            fputcsv($handle, ['Ruang Rawat', 'Lokasi', 'Paket Makanan', 'Tanggal', 'Status']);
+            fputcsv($handle, ['Ruang Rawat', 'Lokasi', 'Paket Makanan', 'Tanggal', 'Status', 'Alasan Batal']);
             
             // Data untuk tabel utama
             foreach ($pesananRows as $row) {
@@ -108,6 +128,7 @@ class LaporanController extends Controller
                     $row->nama_paket,
                     $row->tanggal,
                     $row->status,
+                    $row->alasan_batal, // tambahkan data alasan batal
                 ]);
             }
 
@@ -133,4 +154,3 @@ class LaporanController extends Controller
         ]);
     }
 }
-

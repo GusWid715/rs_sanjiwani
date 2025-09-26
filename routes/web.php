@@ -57,7 +57,7 @@ Route::prefix('manager')->name('manager.')->middleware(['auth', 'isManager'])->g
     // rute untuk aksi menyelesaikan pesanan
     Route::post('/pesanan/{pesanan}/selesai', [PesananController::class, 'complete'])->name('pesanan.complete');
     // rute untuk aksi membatalkan pesanan
-    Route::post('/pesanan/{pesanan}/batal', [PesananController::class, 'cancel'])->name('pesanan.cancel');
+    Route::post('pesanan/{pesanan}/batal', [PesananController::class, 'cancel'])->name('pesanan.cancel');
     
     
     // rute untuk laporan

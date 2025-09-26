@@ -47,10 +47,22 @@ class PesananController extends Controller
     }
 
     // fungsi untuk mengubah status pesanan menjadi 'batal'
-    public function cancel(Pesanan $pesanan)
+    public function cancel(Request $request, Pesanan $pesanan)
     {
-        $pesanan->update(['status' => 'batal']); // update status
-        $this->logActivity('membatalkan pesanan #' . $pesanan->id, 'pesanan', $pesanan->id); // catat log
+        // validasi bahwa alasan batal wajib diisi
+        $request->validate([
+            'alasan_batal' => 'required|string|min:5',
+        ]);
+
+        // update status dan simpan alasan pembatalan
+        $pesanan->update([
+            'status' => 'batal',
+            'alasan_batal' => $request->alasan_batal,
+        ]);
+
+        // catat log
+        $this->logActivity('membatalkan pesanan #' . $pesanan->id, 'pesanan', $pesanan->id);
+        
         return redirect()->route('manager.pesanan.index')->with('success', 'Pesanan #' . $pesanan->id . ' telah dibatalkan.');
     }
 }

@@ -6,8 +6,11 @@
 <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h3>Laporan</h3>
-        <a href="{{ route('manager.dashboard') }}" class="btn btn-outline-secondary">Kembali Dashboard</a>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{{ route('manager.dashboard') }}" class="btn btn-outline-secondary">Dashboard</a>
+        </div>
     </div>
+    {{-- Form untuk filter laporan --}}
     <div class="card mb-4">
         <div class="card-body">
             <form method="GET" action="{{ route('manager.laporan.index') }}" class="row g-3 align-items-end">
@@ -40,53 +43,38 @@
     {{-- Kartu ringkasan statistik --}}
     <div class="row g-3 mb-4">
         <div class="col-md-3">
-            <div class="card p-3 text-center">
-                <h6>Total Pesanan</h6>
-                <h3>{{ $total }}</h3>
-            </div>
+            <div class="card p-3 text-center"><h6>Total Pesanan</h6><h3>{{ $total }}</h3></div>
         </div>
         <div class="col-md-3">
-            <div class="card p-3 text-center">
-                <h6>Pending</h6>
-                <h3>{{ $byStatus['pending']->total ?? 0 }}</h3>
-            </div>
+            <div class="card p-3 text-center"><h6>Pending</h6><h3>{{ $byStatus['pending']->total ?? 0 }}</h3></div>
         </div>
         <div class="col-md-3">
-            <div class="card p-3 text-center">
-                <h6>Proses</h6>
-                <h3>{{ $byStatus['proses']->total ?? 0 }}</h3>
-            </div>
+            <div class="card p-3 text-center"><h6>Proses</h6><h3>{{ $byStatus['proses']->total ?? 0 }}</h3></div>
         </div>
         <div class="col-md-3">
-            <div class="card p-3 text-center">
-                <h6>Selesai</h6>
-                <h3>{{ $byStatus['selesai']->total ?? 0 }}</h3>
-            </div>
+            <div class="card p-3 text-center"><h6>Selesai</h6><h3>{{ $byStatus['selesai']->total ?? 0 }}</h3></div>
         </div>
     </div>
 
     {{-- Tabel Detail Pesanan --}}
     <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="mb-0">Detail Pesanan</h5>
-        </div>
+        <div class="card-header"><h5 class="mb-0">Detail Pesanan</h5></div>
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
                             <th>Ruang Rawat</th>
-                            <th>Lokasi</th>
                             <th>Paket Makanan</th>
                             <th>Tanggal</th>
                             <th>Status</th>
+                            <th>Alasan Batal</th> {{-- TAMBAHKAN HEADER INI --}}
                         </tr>
                     </thead>
                     <tbody>
                         @forelse ($pesanan as $p)
                         <tr>
                             <td><strong>{{ $p->ruangRawat->nama_ruang ?? 'N/A' }}</strong></td>
-                            <td>{{ $p->ruangRawat->lokasi ?? 'N/A' }}</td>
                             <td>{{ $p->paketMakanan->nama_paket ?? 'N/A' }}</td>
                             <td>{{ $p->tanggal->format('d M Y, H:i') }}</td>
                             <td>
@@ -98,9 +86,12 @@
                                     @default <span class="badge bg-secondary">Unknown</span>
                                 @endswitch
                             </td>
+                            {{-- TAMBAHKAN KOLOM INI --}}
+                            <td>{{ $p->alasan_batal ?? '-' }}</td>
                         </tr>
                         @empty
                         <tr>
+                            {{-- ubah colspan menjadi 5 --}}
                             <td colspan="5" class="text-center py-4">
                                 <div class="text-muted">Tidak ada data untuk rentang yang dipilih.</div>
                             </td>
@@ -112,11 +103,9 @@
         </div>
     </div>
 
-    {{-- Tabel Top Paket Makanan (sekarang di bawah) --}}
+    {{-- Tabel Top Paket Makanan --}}
     <div class="card">
-        <div class="card-header">
-            <h5 class="mb-0">Top Paket Makanan</h5>
-        </div>
+        <div class="card-header"><h5 class="mb-0">Top Paket Makanan</h5></div>
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table class="table table-hover mb-0">

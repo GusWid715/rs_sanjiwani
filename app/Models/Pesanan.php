@@ -18,6 +18,7 @@ class Pesanan extends Model
         'paket_makanan_id',
         'tanggal',
         'status',
+        'alasan_batal',
     ];
 
     // Melakukan casting tipe data untuk atribut tertentu.
@@ -25,20 +26,11 @@ class Pesanan extends Model
         'tanggal' => 'datetime', // Mengubah kolom 'tanggal' menjadi objek Carbon.
     ];
 
-    /**
-     * Mendefinisikan relasi "belongsTo" ke model PaketMakanan.
-     * Setiap pesanan dimiliki oleh satu paket makanan.
-     */
     public function paketMakanan()
     {
         return $this->belongsTo(PaketMakanan::class, 'paket_makanan_id');
     }
 
-    /**
-     * Mendefinisikan relasi "belongsTo" ke model RuangRawat.
-     * Setiap pesanan terasosiasi dengan satu ruang rawat.
-     * Catatan: Pastikan Anda juga membuat model RuangRawat.
-     */
     public function ruangRawat()
     {
         // Diasumsikan Anda akan memiliki model RuangRawat di masa depan.

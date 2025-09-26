@@ -8,7 +8,7 @@
         <h3>Manajemen Menu</h3>
         <div class="d-flex flex-wrap gap-2">
             <a href="{{ route('manager.menu.create') }}"class="btn btn-primary">Tambah Menu Baru</a>
-            <a href="{{ route('manager.dashboard') }}" class="btn btn-outline-secondary">Kembali ke Dashboard</a>
+            <a href="{{ route('manager.dashboard') }}" class="btn btn-outline-secondary">Dashboard</a>
         </div>
     </div>
 

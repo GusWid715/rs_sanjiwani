@@ -7,7 +7,7 @@
         <h3>Manajemen Paket</h3>
         <div class="d-flex flex-wrap gap-2">
             <a href="{{ route('manager.paket-makanan.create') }}"class="btn btn-primary">Tambah Paket Baru</a>
-            <a href="{{ route('manager.dashboard') }}" class="btn btn-outline-secondary">Kembali ke Dashboard</a>
+            <a href="{{ route('manager.dashboard') }}" class="btn btn-outline-secondary">Dashboard</a>
         </div>
     </div>
 
