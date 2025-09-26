@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Pesanan;
 use App\Traits\ActivityLogger;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class PesananController extends Controller
 {
@@ -41,9 +42,35 @@ class PesananController extends Controller
     // fungsi untuk mengubah status pesanan dari 'proses' menjadi 'selesai'
     public function complete(Pesanan $pesanan)
     {
-        $pesanan->update(['status' => 'selesai']); // update status
-        $this->logActivity('menyelesaikan pesanan #' . $pesanan->id, 'pesanan', $pesanan->id); // catat log
-        return redirect()->route('manager.pesanan.index')->with('success', 'Pesanan #' . $pesanan->id . ' telah selesai.');
+        // memulai database transaction
+        DB::transaction(function () use ($pesanan) {
+            // mengambil data paket dan semua menu di dalamnya
+            // load() digunakan untuk eager loading relasi
+            $pesanan->load('paketMakanan.menu');
+
+            // validasi stok sebelum pengurangan
+            foreach ($pesanan->paketMakanan->menu as $menu) {
+                    // cek jika stok menu kurang dari atau sama dengan 0
+                    if ($menu->stok <= 0) {
+                        // jika stok habis, batalkan seluruh proses dengan melempar exception
+                        throw new \Exception('Tidak dapat menyelesaikan pesanan. Stok untuk menu "' . $menu->nama_menu . '" telah habis.');
+                    }
+                }
+
+            // loop setiap menu di dalam paket
+            foreach ($pesanan->paketMakanan->menu as $menu) {
+                // kurangi stok menu sebanyak 1
+                $menu->decrement('stok');
+            }
+
+            // update status pesanan menjadi 'selesai'
+            $pesanan->update(['status' => 'selesai']);
+
+            // catat aktivitas ke log
+            $this->logActivity('menyelesaikan pesanan #' . $pesanan->id . ' dan mengurangi stok', 'pesanan', $pesanan->id);
+        });
+
+        return redirect()->route('manager.pesanan.index')->with('success', 'Pesanan #' . $pesanan->id . ' telah selesai dan stok menu telah diperbarui.');
     }
 
     // fungsi untuk mengubah status pesanan menjadi 'batal'
