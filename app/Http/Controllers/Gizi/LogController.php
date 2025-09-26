@@ -18,10 +18,15 @@ class LogController extends Controller
 
         $query = log_aktivitas::with('user')->orderByDesc('waktu');
 
+        // cek jika ada input pencarian 'q' dari pengguna
         if ($q) {
+            // menambahkan sebuah grup kondisi WHERE, agar pencarian OR tidak bentrok dengan filter lain
             $query->where(function($sub) use ($q) {
+                // kondisi 1: cari kata kunci di dalam kolom 'aktivitas'
                 $sub->where('aktivitas', 'like', "%{$q}%")
+                    // atau kondisi 2: cari kata kunci di dalam kolom 'entity'
                     ->orWhere('entity', 'like', "%{$q}%")
+                    // atau kondisi 3: cari kata kunci di dalam kolom 'entity_id'
                     ->orWhere('entity_id', 'like', "%{$q}%");
             });
         }
@@ -48,6 +53,6 @@ class LogController extends Controller
         // buat list users untuk dropdown filter (opsional)
         $users = User::select('id','name',)->orderBy('name')->get();
 
-        return view('gizi.logs.index', compact('logs','users','q','user_id','from','to'));
+        return view('Gizi.logs.index', compact('logs','users','q','user_id','from','to'));
     }
 }

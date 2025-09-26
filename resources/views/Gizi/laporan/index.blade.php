@@ -1,129 +1,148 @@
-<!doctype html>
-<html lang="id">
-<head>
-  <meta charset="utf-8">
-  <title>Laporan Pesanan - Gizi</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
-<div class="container py-4">
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h3>Laporan Pesanan</h3>
-    <div>
-      <a href="{{ route('gizi.dashboard') }}" class="btn btn-outline-secondary">Kembali Dashboard</a>
-    </div>
-  </div>
+@extends('layouts.app')
 
-  <form class="row g-2 mb-3" method="GET" action="{{ route('gizi.laporan.index') }}">
-    <div class="col-md-3">
-      <label class="form-label">Mulai</label>
-      <input type="date" name="start_date" class="form-control" value="{{ optional($start)->toDateString() }}">
-    </div>
-    <div class="col-md-3">
-      <label class="form-label">Sampai</label>
-      <input type="date" name="end_date" class="form-control" value="{{ optional($end)->toDateString() }}">
-    </div>
-    <div class="col-md-3">
-      <label class="form-label">Status</label>
-      <select name="status" class="form-select">
-        <option value="">Semua</option>
-        <option value="pending" {{ ($status ?? '') == 'pending' ? 'selected' : '' }}>pending</option>
-        <option value="proses" {{ ($status ?? '') == 'proses' ? 'selected' : '' }}>proses</option>
-        <option value="diterima" {{ ($status ?? '') == 'diterima' ? 'selected' : '' }}>diterima</option>
-        <option value="ditolak" {{ ($status ?? '') == 'ditolak' ? 'selected' : '' }}>ditolak</option>
-      </select>
-    </div>
-    <div class="col-md-3 align-self-end">
-      <button class="btn btn-secondary">Filter</button>
-      <a href="{{ route('gizi.laporan.export', request()->all()) }}" class="btn btn-outline-primary">Export CSV</a>
-    </div>
-  </form>
+@section('title', 'Laporan Pesanan')
 
-  <div class="row g-3 mb-3">
-    <div class="col-md-3">
-      <div class="card p-3">
-        <h6>Total Pesanan</h6>
-        <h3>{{ $total ?? 0 }}</h3>
-      </div>
+@section('content')
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>Laporan</h3>
+        <a href="{{ route('manager.dashboard') }}" class="btn btn-outline-secondary">Kembali Dashboard</a>
     </div>
-    <div class="col-md-3">
-      <div class="card p-3">
-        <h6>Pending</h6>
-        <h3>{{ $byStatus['pending'] ?? 0 }}</h3>
-      </div>
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" action="{{ route('manager.laporan.index') }}" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label for="start_date" class="form-label">Tanggal Mulai</label>
+                    <input type="date" class="form-control" name="start_date" id="start_date" value="{{ optional($start)->format('Y-m-d') }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="end_date" class="form-label">Tanggal Akhir</label>
+                    <input type="date" class="form-control" name="end_date" id="end_date" value="{{ optional($end)->format('Y-m-d') }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="status" class="form-label">Status</label>
+                    <select name="status" id="status" class="form-select">
+                        <option value="">Semua Status</option>
+                        <option value="pending" {{ $status == 'pending' ? 'selected' : '' }}>Pending</option>
+                        <option value="proses" {{ $status == 'proses' ? 'selected' : '' }}>Proses</option>
+                        <option value="selesai" {{ $status == 'selesai' ? 'selected' : '' }}>Selesai</option>
+                        <option value="batal" {{ $status == 'batal' ? 'selected' : '' }}>Batal</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary w-100">Filter</button>
+                    <a href="{{ route('manager.laporan.export', request()->query()) }}" class="btn btn-success w-100">Export</a>
+                </div>
+            </form>
+        </div>
     </div>
-    <div class="col-md-3">
-      <div class="card p-3">
-        <h6>Proses</h6>
-        <h3>{{ $byStatus['proses'] ?? 0 }}</h3>
-      </div>
-    </div>
-    <div class="col-md-3">
-      <div class="card p-3">
-        <h6>Diterima</h6>
-        <h3>{{ $byStatus['diterima'] ?? 0 }}</h3>
-      </div>
-    </div>
-  </div>
 
-  <div class="card mb-3">
-    <div class="card-body p-0">
-      <table class="table table-hover mb-0">
-        <thead class="table-light">
-          <tr>
-            <th>#</th><th>User ID</th><th>Menu</th><th>Jumlah</th><th>Tanggal</th><th>Status</th><th>Ruangan</th><th>Catatan</th>
-          </tr>
-        </thead>
-        <tbody>
-          @forelse($pesanans as $p)
-            <tr>
-              <td>{{ $p->id }}</td>
-              <td>{{ $p->user_id }}</td>
-              <td>
-                @if(!empty($p->menu_id) && isset($menus[$p->menu_id]))
-                  {{ $menus[$p->menu_id]->nama_menu ?? 'Menu #'.$p->menu_id }}
-                @elseif(!empty($p->menu_id))
-                  Menu #{{ $p->menu_id }}
-                @else
-                  -
-                @endif
-              </td>
-              <td>{{ $p->jumlah ?? '-' }}</td>
-              <td>{{ \Carbon\Carbon::parse($p->tanggal)->format('Y-m-d') }}</td>
-              <td>{{ $p->status }}</td>
-              <td>{{ $p->ruangan ?? '-' }}</td>
-              <td>{{ $p->catatan ?? '-' }}</td>
-            </tr>
-          @empty
-            <tr><td colspan="8" class="text-center py-4">Tidak ada data.</td></tr>
-          @endforelse
-        </tbody>
-      </table>
+    {{-- Kartu ringkasan statistik --}}
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card p-3 text-center">
+                <h6>Total Pesanan</h6>
+                <h3>{{ $total }}</h3>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card p-3 text-center">
+                <h6>Pending</h6>
+                <h3>{{ $byStatus['pending']->total ?? 0 }}</h3>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card p-3 text-center">
+                <h6>Proses</h6>
+                <h3>{{ $byStatus['proses']->total ?? 0 }}</h3>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card p-3 text-center">
+                <h6>Selesai</h6>
+                <h3>{{ $byStatus['selesai']->total ?? 0 }}</h3>
+            </div>
+        </div>
     </div>
-  </div>
 
-  <div class="card">
-    <div class="card-body">
-      <h5>Top Menu (Berdasarkan total jumlah)</h5>
-      <table class="table table-sm">
-        <thead><tr><th>Menu</th><th>Total Jumlah</th><th>Total Pesanan</th></tr></thead>
-        <tbody>
-          @forelse($totalsByMenu as $row)
-            <tr>
-              <td>{{ $menus[$row->menu_id]->nama_menu ?? 'Menu #'.$row->menu_id }}</td>
-              <td>{{ $row->total_jumlah }}</td>
-              <td>{{ $row->total_pesanan }}</td>
-            </tr>
-          @empty
-            <tr><td colspan="3">Tidak ada.</td></tr>
-          @endforelse
-        </tbody>
-      </table>
+    {{-- Tabel Detail Pesanan --}}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Detail Pesanan</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Ruang Rawat</th>
+                            <th>Lokasi</th>
+                            <th>Paket Makanan</th>
+                            <th>Tanggal</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($pesanan as $p)
+                        <tr>
+                            <td><strong>{{ $p->ruangRawat->nama_ruang ?? 'N/A' }}</strong></td>
+                            <td>{{ $p->ruangRawat->lokasi ?? 'N/A' }}</td>
+                            <td>{{ $p->paketMakanan->nama_paket ?? 'N/A' }}</td>
+                            <td>{{ $p->tanggal->format('d M Y, H:i') }}</td>
+                            <td>
+                                @switch($p->status)
+                                    @case('pending') <span class="badge bg-warning text-dark">Pending</span> @break
+                                    @case('proses') <span class="badge bg-info">Proses</span> @break
+                                    @case('selesai') <span class="badge bg-success">Selesai</span> @break
+                                    @case('batal') <span class="badge bg-danger">Batal</span> @break
+                                    @default <span class="badge bg-secondary">Unknown</span>
+                                @endswitch
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="5" class="text-center py-4">
+                                <div class="text-muted">Tidak ada data untuk rentang yang dipilih.</div>
+                            </td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
-  </div>
 
+    {{-- Tabel Top Paket Makanan (sekarang di bawah) --}}
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Top Paket Makanan</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Nama Paket</th>
+                            <th class="text-end">Total Pesanan</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($totalsByPaket as $paket)
+                        <tr>
+                            <td>{{ $paketMakanan[$paket->paket_makanan_id] ?? 'N/A' }}</td>
+                            <td class="text-end">{{ $paket->total_pesanan }}</td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="2" class="text-center py-3">
+                                <div class="text-muted">Tidak ada data paket makanan.</div>
+                            </td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+@endsection

@@ -1,111 +1,110 @@
 <?php
 
-namespace App\Http\Controllers\Gizi; // DIUBAH: dari Admin ke Gizi
+namespace App\Http\Controllers\Gizi;
 
 use App\Http\Controllers\Controller;
-use App\Models\menus;
-use App\Models\sets; // DIUBAH: dari kategori_makanans ke sets
-use Illuminate\Http\Request;
+use App\Models\KategoriMenu;
+use App\Models\Menu;
 use App\Traits\ActivityLogger;
+use Illuminate\Http\Request;
 
 class MenuController extends Controller
 {
-    use ActivityLogger;
+    use ActivityLogger; // menggunakan trait untuk log
 
-    // ================== FORM TAMBAH MENU ==================
-    public function create(Request $request) // Ditambahkan Request
+    // menampilkan halaman daftar semua menu
+    public function index(Request $request)
     {
-        $sets = sets::orderBy('nama_set')->get(); // DIUBAH: dari kategoris ke sets
-        $selectedSetId = $request->query('set_id'); // Menangkap set_id dari URL
+        // memulai query ke model Menu
+        $query = Menu::with('kategoriMenu'); // with() untuk mengambil data relasi kategori
 
-        // DIUBAH: path view dan mengirim set_id yang dipilih
-        return view('Gizi.menus.create', compact('sets', 'selectedSetId'));
+        // filter berdasarkan pencarian nama menu
+        if ($request->filled('q')) {
+            $q = $request->q;
+            // menambahkan grup kondisi WHERE untuk pencarian
+            $query->where(function ($subQuery) use ($q) {
+                // kondisi 1: cari di kolom 'nama_menu' di tabel 'menu'
+                $subQuery->where('nama_menu', 'like', '%' . $q . '%')
+                         // kondisi 2: atau cari di relasi 'kategoriMenu'
+                        ->orWhereHas('kategoriMenu', function ($kategoriQuery) use ($q) {
+                             // di dalam relasi, cari di kolom 'nama_kategori'
+                            $kategoriQuery->where('nama_kategori', 'like', '%' . $q . '%');
+                        });
+            });
+        }
+
+        // filter berdasarkan kategori
+        if ($request->filled('kategori_id')) {
+            $query->where('kategori_id', $request->kategori_id);
+        }
+
+        // mengambil data menu yang sudah difilter dan diurutkan
+        $menu = $query->latest()->paginate(10);
+        
+        // mengambil semua kategori untuk dropdown filter
+        $kategoriMenu = KategoriMenu::orderBy('nama_kategori')->get();
+
+        return view('Gizi.menu.index', [
+            'menu' => $menu,
+            'kategoriMenu' => $kategoriMenu,
+            'q' => $request->q,
+            'kategori_id' => $request->kategori_id
+        ]);
     }
 
-    // ================== SIMPAN DATA MENU BARU ==================
+    // menampilkan form untuk membuat menu baru
+    public function create()
+    {
+        $kategoriMenu = KategoriMenu::orderBy('nama_kategori')->get();
+        return view('Gizi.menu.create', compact('kategoriMenu'));
+    }
+
+    // menyimpan menu baru ke database
     public function store(Request $request)
     {
+        // validasi input
         $data = $request->validate([
             'nama_menu' => 'required|string|max:100',
-            'set_id'    => 'required|exists:sets,id', // DIUBAH: validasi ke tabel sets
+            'kategori_id' => 'required|exists:kategori_menu,id',
             'deskripsi' => 'nullable|string',
-            'image'     => 'nullable|image|mimes:jpg,jpeg,png,gif|max:2048',
-            'stok'      => 'required|integer|min:0',
+            'stok' => 'required|integer|min:0',
         ]);
 
-        if ($request->hasFile('image')) {
-            $filename = time() . '.' . $request->image->extension();
-            $request->image->move(public_path('images'), $filename);
-            $data['image'] = $filename;
-        }
+        $menu = Menu::create($data);
+        $this->logActivity('membuat menu: ' . $menu->nama_menu, 'menu', $menu->id);
 
-        $menu = menus::create($data);
-
-        // panggil fungsi log setelah data dibuat
-        $this->logActivity('menambah menu baru: ' . $menu->nama_menu, 'menus', $menu->id);
-
-        // DIUBAH: route redirect ke gizi
-        return redirect()->route('gizi.sets.show', $menu->set_id)->with('success', 'Menu berhasil ditambahkan.');
+        return redirect()->route('manager.menu.index')->with('success', 'Menu baru berhasil ditambahkan.');
     }
 
-    // ================== FORM DETAIL MENU ==================
-    public function show(menus $menu)
+    // menampilkan form untuk mengedit menu
+    public function edit(Menu $menu)
     {
-        $menu->load('set'); // DIUBAH: relasi ke set
-        return view('Gizi.menus.show', compact('menu')); // DIUBAH: path view
+        $kategoriMenu = KategoriMenu::orderBy('nama_kategori')->get();
+        return view('Gizi.menu.edit', compact('menu', 'kategoriMenu'));
     }
 
-    // ================== FORM EDIT MENU ==================
-    public function edit(menus $menu)
+    // memperbarui menu di database
+    public function update(Request $request, Menu $menu)
     {
-        $sets = sets::orderBy('nama_set')->get(); // DIUBAH: dari kategoris ke sets
-        return view('Gizi.menus.edit', compact('menu','sets')); // DIUBAH: path view
-    }
-
-    // ================== UPDATE DATA MENU ==================
-    public function update(Request $request, menus $menu)
-    {
+        // validasi input
         $data = $request->validate([
             'nama_menu' => 'required|string|max:100',
-            'set_id'    => 'required|exists:sets,id', // DIUBAH: validasi ke tabel sets
+            'kategori_id' => 'required|exists:kategori_menu,id',
             'deskripsi' => 'nullable|string',
-            'stok'      => 'required|integer|min:0',
-            'image'     => 'nullable|image|mimes:jpg,jpeg,png,gif|max:2048',
+            'stok' => 'required|integer|min:0',
         ]);
-
-        if ($request->hasFile('image')) {
-            if ($menu->image && file_exists(public_path('images/' . $menu->image))) {
-                unlink(public_path('images/' . $menu->image));
-            }
-
-            $filename = time() . '.' . $request->image->extension();
-            $request->image->move(public_path('images'), $filename);
-            $data['image'] = $filename;
-        }
 
         $menu->update($data);
+        $this->logActivity('memperbarui menu: ' . $menu->nama_menu, 'menu', $menu->id);
 
-        // panggil fungsi log setelah data diupdate
-        $this->logActivity('memperbarui menu: ' . $menu->nama_menu, 'menus', $menu->id);
-
-        // DIUBAH: route redirect ke gizi
-        return redirect()->route('gizi.sets.show', $menu->set_id)->with('success', 'Menu berhasil diperbarui.');
+        return redirect()->route('manager.menu.index')->with('success', 'Menu berhasil diperbarui.');
     }
 
-    // ================== HAPUS MENU ==================
-    public function destroy(menus $menu)
+    // menghapus menu dari database
+    public function destroy(Menu $menu)
     {
-        // Hapus gambar jika ada
-        if ($menu->image && file_exists(public_path('images/' . $menu->image))) {
-            unlink(public_path('images/' . $menu->image));
-        }
-        
-        // panggil fungsi log sebelum data dihapus
-        $this->logActivity('menghapus menu: ' . $menu->nama_menu, 'menus', $menu->id);
-
+        $this->logActivity('menghapus menu: ' . $menu->nama_menu, 'menu', $menu->id);
         $menu->delete();
-
-        // DIUBAH: route redirect ke gizi
-        return redirect()->route('gizi.sets.show', $menu->set_id)->with('success', 'Menu berhasil dihapus.');
+        return redirect()->route('manager.menu.index')->with('success', 'Menu berhasil dihapus.');
     }
 }

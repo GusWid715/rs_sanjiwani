@@ -3,39 +3,54 @@
 namespace App\Http\Controllers\Gizi;
 
 use App\Http\Controllers\Controller;
-use App\Models\pesanans; // gunakan model pesanans
+use App\Models\Pesanan;
+use App\Traits\ActivityLogger;
 use Illuminate\Http\Request;
-use App\Traits\ActivityLogger; // import trait
 
 class PesananController extends Controller
 {
-    use ActivityLogger; // gunakan trait
+    use ActivityLogger; // menggunakan trait untuk pencatatan log
 
-    // menampilkan daftar pesanan yang pending saja
+    // fungsi untuk menampilkan halaman utama pesanan
     public function index()
     {
-        // UBAH BARIS INI: tambahkan 'menu.set' untuk mengambil data set
-        $pesanans = pesanans::with(['user', 'menu.set'])
+        // mengambil semua pesanan yang statusnya 'pending'
+        $pendingPesanan = Pesanan::with(['ruangRawat', 'paketMakanan'])
             ->where('status', 'pending')
-            ->orderBy('tanggal', 'asc') // tampilkan yang paling lama di atas
+            ->latest()
             ->get();
 
-        return view('Gizi.pesanan.index', compact('pesanans'));
+        // mengambil semua pesanan yang statusnya 'proses'
+        $prosesPesanan = Pesanan::with(['ruangRawat', 'paketMakanan'])
+            ->where('status', 'proses')
+            ->latest()
+            ->get();
+
+        // mengirim kedua data tersebut ke view
+        return view('Gizi.pesanan.index', compact('pendingPesanan', 'prosesPesanan'));
     }
 
-    // fungsi untuk menyetujui pesanan
-    public function approve(pesanans $pesanan)
+    // fungsi untuk mengubah status pesanan dari 'pending' menjadi 'proses'
+    public function process(Pesanan $pesanan)
     {
-        // ubah status menjadi 'selesai'
-        $pesanan->status = 'selesai';
-        $pesanan->save();
+        $pesanan->update(['status' => 'proses']); // update status
+        $this->logActivity('memproses pesanan #' . $pesanan->id, 'pesanan', $pesanan->id); // catat log
+        return redirect()->route('manager.pesanan.index')->with('success', 'Pesanan #' . $pesanan->id . ' telah diproses.');
+    }
 
-        // catat aktivitas ke log
-        $logMessage = 'menyelesaikan pesanan #' . $pesanan->id . ' untuk pasien ' . ($pesanan->user->name ?? 'N/A');
-        $this->logActivity($logMessage, 'pesanans', $pesanan->id);
+    // fungsi untuk mengubah status pesanan dari 'proses' menjadi 'selesai'
+    public function complete(Pesanan $pesanan)
+    {
+        $pesanan->update(['status' => 'selesai']); // update status
+        $this->logActivity('menyelesaikan pesanan #' . $pesanan->id, 'pesanan', $pesanan->id); // catat log
+        return redirect()->route('manager.pesanan.index')->with('success', 'Pesanan #' . $pesanan->id . ' telah selesai.');
+    }
 
-        // kembali ke halaman pesanan masuk dengan pesan sukses
-        return redirect()->route('gizi.pesanan.index')
-                         ->with('success', 'Pesanan telah diselesaikan.');
+    // fungsi untuk mengubah status pesanan menjadi 'batal'
+    public function cancel(Pesanan $pesanan)
+    {
+        $pesanan->update(['status' => 'batal']); // update status
+        $this->logActivity('membatalkan pesanan #' . $pesanan->id, 'pesanan', $pesanan->id); // catat log
+        return redirect()->route('manager.pesanan.index')->with('success', 'Pesanan #' . $pesanan->id . ' telah dibatalkan.');
     }
 }

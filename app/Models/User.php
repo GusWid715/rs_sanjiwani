@@ -4,10 +4,12 @@ namespace App\Models;
 
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+
 
 class User extends Authenticatable
 {
-    use Notifiable;
+    use Notifiable, HasFactory;
     protected $table = 'users';
 
     protected $fillable = [
@@ -22,9 +24,17 @@ class User extends Authenticatable
         'remember_token',
     ];
 
-    public function pesanans()
+    protected function casts(): array
     {
-        return $this->hasMany(pesanans::class);
+        return [
+            'password' => 'hashed',
+        ];
+    }
+
+
+    public function pesanan()
+    {
+        return $this->hasMany(pesanan::class);
     }
 
     public function logs()

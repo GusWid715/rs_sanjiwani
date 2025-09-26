@@ -10,7 +10,7 @@ return new class extends Migration {
             $table->id(); // Primary key
             $table->string('name', 100);
             $table->string('password');
-            $table->string('role', 50)->default('pasien'); 
+            $table->enum('role', ['pasien', 'manager'])->default('pasien'); 
             $table->rememberToken(); // Kolom remember_token VARCHAR(100) NULL
         });
     }

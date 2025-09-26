@@ -3,55 +3,62 @@
 namespace App\Http\Controllers\Gizi;
 
 use App\Http\Controllers\Controller;
+use App\Models\PaketMakanan;
+use App\Models\Pesanan;
+use App\Traits\ActivityLogger;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 use Symfony\Component\HttpFoundation\StreamedResponse;
-use App\Traits\ActivityLogger;
 
 class LaporanController extends Controller
 {
-    use ActivityLogger; // trait di dalam controller
+    use ActivityLogger; // trait untuk log aktivitas
+
     public function index(Request $request)
     {
-        // default: 7 hari terakhir
+        // mengambil filter tanggal dan status
         $end = $request->input('end_date') ? Carbon::parse($request->input('end_date'))->endOfDay() : Carbon::now()->endOfDay();
         $start = $request->input('start_date') ? Carbon::parse($request->input('start_date'))->startOfDay() : Carbon::now()->subDays(6)->startOfDay();
         $status = $request->input('status');
 
-        $query = DB::table('pesanans')
-            ->whereBetween('tanggal', [$start->toDateString(), $end->toDateString()]);
+        // query dasar ke model Pesanan
+        $query = Pesanan::query()->whereBetween('tanggal', [$start, $end]);
 
         if (!empty($status)) {
             $query->where('status', $status);
         }
 
-        $pesanans = $query->orderByDesc('tanggal')->get();
+        // mengambil data pesanan beserta relasinya (nama ruang rawat & nama paket)
+        $pesanan = $query->with(['ruangRawat', 'paketMakanan'])->orderByDesc('tanggal')->get();
 
-        // ringkasan sederhana
-        $total = $pesanans->count();
-        $byStatus = $pesanans->groupBy('status')->map->count();
+        // menghitung total dan ringkasan per status dari data yang sudah diambil
+        $total = $pesanan->count();
+        $byStatus = $pesanan->groupBy('status')->mapWithKeys(function ($group, $key) {
+            return [$key => (object)['total' => $group->count()]];
+        });
 
-        // totals per menu (jika menu_id ada)
-        $totalsByMenu = DB::table('pesanans')
-            ->select('menu_id', DB::raw('SUM(jumlah) as total_jumlah'), DB::raw('COUNT(*) as total_pesanan'))
-            ->whereBetween('tanggal', [$start->toDateString(), $end->toDateString()])
-            ->when(!empty($status), fn($q) => $q->where('status', $status))
-            ->groupBy('menu_id')
-            ->orderByDesc('total_jumlah')
+        // menghitung top paket makanan
+        $totalsByPaket = DB::table('pesanan')
+            ->select('paket_makanan_id', DB::raw('COUNT(*) as total_pesanan'))
+            ->whereBetween('tanggal', [$start, $end])
+            ->when(!empty($status), fn($q) => $q->where('status', '!=', 'batal'))
+            ->groupBy('paket_makanan_id')
+            ->orderByDesc('total_pesanan')
             ->get();
-
-        // jika ingin mengambil nama menu, coba join ke tabel menus bila ada
-        $menuIds = $totalsByMenu->pluck('menu_id')->filter()->unique()->values()->all();
-        $menus = [];
-        if (!empty($menuIds)) {
-            $menus = DB::table('menus')->whereIn('id', $menuIds)->get()->keyBy('id');
+            
+        // mengambil detail paket makanan untuk ditampilkan namanya
+        $paketIds = $totalsByPaket->pluck('paket_makanan_id')->filter()->unique()->values()->all();
+        $paketMakanan = [];
+        if (!empty($paketIds)) {
+            $paketMakanan = PaketMakanan::whereIn('id', $paketIds)->pluck('nama_paket', 'id');
         }
 
-        return view('Gizi.laporan.index', compact('pesanans','total','byStatus','totalsByMenu','menus','start','end','status'));
+        // kirim semua data ke view
+        return view('Gizi.laporan.index', compact('pesanan', 'total', 'byStatus', 'totalsByPaket', 'paketMakanan', 'start', 'end', 'status'));
     }
 
-    // Export CSV dengan format laporan kustom
+    // fungsi untuk ekspor laporan ke CSV
     public function export(Request $request)
     {
         // mengambil filter tanggal dan status
@@ -59,65 +66,62 @@ class LaporanController extends Controller
         $start = $request->input('start_date') ? Carbon::parse($request->input('start_date'))->startOfDay() : Carbon::now()->subDays(6)->startOfDay();
         $status = $request->input('status');
 
-        // Query utama untuk data pesanan (dengan join ke tabel users dan menus)
-        $query = DB::table('pesanans')
-            ->join('users', 'pesanans.user_id', '=', 'users.id')
-            ->join('menus', 'pesanans.menu_id', '=', 'menus.id')
-            ->select('users.name as user_name', 'menus.nama_menu', 'pesanans.jumlah', 'pesanans.tanggal', 'pesanans.status', 'pesanans.ruangan', 'pesanans.catatan')
-            ->whereBetween('pesanans.tanggal', [$start, $end]);
-
-        if (!empty($status)) {
-            $query->where('pesanans.status', $status);
-        }
+        // Query data pesanan dengan join untuk mendapatkan nama
+        $query = DB::table('pesanan')
+            ->join('ruang_rawat', 'pesanan.ruang_rawat_id', '=', 'ruang_rawat.id')
+            ->join('paket_makanan', 'pesanan.paket_makanan_id', '=', 'paket_makanan.id')
+            ->select('ruang_rawat.nama_ruang', 'ruang_rawat.lokasi', 'paket_makanan.nama_paket', 'pesanan.tanggal', 'pesanan.status')
+            ->whereBetween('pesanan.tanggal', [$start, $end]);
         
-        $pesananRows = $query->orderByDesc('pesanans.tanggal')->get();
+        if (!empty($status)) {
+            $query->where('pesanan.status', $status);
+        }
+        $pesananRows = $query->orderBy('pesanan.tanggal')->cursor();
 
-        // Query kedua untuk ringkasan Top Menu
-        $topMenuRows = DB::table('pesanans')
-            ->join('menus', 'pesanans.menu_id', '=', 'menus.id')
-            ->select('menus.nama_menu', DB::raw('SUM(pesanans.jumlah) as total_jumlah'), DB::raw('COUNT(pesanans.id) as total_pesanan'))
-            ->whereBetween('pesanans.tanggal', [$start, $end])
-            ->groupBy('menus.nama_menu')
-            ->orderByDesc('total_jumlah')
+        // Query untuk Top Paket Makanan
+        $topPaketRows = DB::table('pesanan')
+            ->join('paket_makanan', 'pesanan.paket_makanan_id', '=', 'paket_makanan.id')
+            ->select('paket_makanan.nama_paket', DB::raw('COUNT(pesanan.id) as total_pesanan'))
+            ->whereBetween('pesanan.tanggal', [$start, $end])
+            ->when(!empty($status), fn($q) => $q->where('status', '!=', 'batal'))
+            ->groupBy('paket_makanan.nama_paket')
+            ->orderByDesc('total_pesanan')
             ->get();
 
-        // 3. catat aktivitas ekspor laporan
+        // mencatat aktivitas ke log
         $this->logActivity('mengekspor laporan pesanan', 'laporan', 0);
 
         $filename = 'laporan_pesanan_' . $start->format('Ymd') . '-' . $end->format('Ymd') . '.csv';
 
-        // membuat response untuk men-download file CSV
-        return new StreamedResponse(function() use ($pesananRows, $topMenuRows) {
+        // membuat response untuk men-download file
+        return new StreamedResponse(function () use ($pesananRows, $topPaketRows) {
             $handle = fopen('php://output', 'w');
 
-            // Header untuk data pesanan
-            fputcsv($handle, ['User', 'Menu', 'Jumlah', 'Tanggal', 'Status', 'Ruangan', 'Catatan']);
-
-            // Baris data pesanan
+            // Header untuk tabel utama
+            fputcsv($handle, ['Ruang Rawat', 'Lokasi', 'Paket Makanan', 'Tanggal', 'Status']);
+            
+            // Data untuk tabel utama
             foreach ($pesananRows as $row) {
                 fputcsv($handle, [
-                    $row->user_name,
-                    $row->nama_menu,
-                    $row->jumlah,
+                    $row->nama_ruang,
+                    $row->lokasi,
+                    $row->nama_paket,
                     $row->tanggal,
                     $row->status,
-                    $row->ruangan,
-                    $row->catatan ?? '',
                 ]);
             }
 
             // Memberi jarak kosong sebelum ringkasan
             fputcsv($handle, []);
-            fputcsv($handle, ['Top Menu (Berdasarkan total jumlah)']);
+            fputcsv($handle, ['Top Paket Makanan (Berdasarkan Jumlah Pesanan)']);
 
-            // Header untuk ringkasan Top Menu
-            fputcsv($handle, ['Menu', 'Total Jumlah', 'Total Pesanan']);
+            // Header untuk tabel ringkasan
+            fputcsv($handle, ['Nama Paket', 'Total Pesanan']);
 
-            // Baris data ringkasan Top Menu
-            foreach ($topMenuRows as $row) {
+            // Data untuk tabel ringkasan
+            foreach ($topPaketRows as $row) {
                 fputcsv($handle, [
-                    $row->nama_menu,
-                    $row->total_jumlah,
+                    $row->nama_paket,
                     $row->total_pesanan,
                 ]);
             }
@@ -129,3 +133,4 @@ class LaporanController extends Controller
         ]);
     }
 }
+

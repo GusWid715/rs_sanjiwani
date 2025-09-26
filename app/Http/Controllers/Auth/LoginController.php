@@ -22,8 +22,8 @@ class LoginController extends Controller
     {
         $user = Auth::user();
 
-        if ($user->role === 'gizi') {
-            return '/gizi'; // nanti kita buat route admin
+        if ($user->role === 'manager') {
+            return '/manager/dashboard'; // nanti kita buat route manager
         }
 
         if ($user->role === 'pasien') {

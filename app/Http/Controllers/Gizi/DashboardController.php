@@ -3,50 +3,40 @@
 namespace App\Http\Controllers\Gizi;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Models\pesanans;
-use App\Models\menus;
+use App\Models\Menu;
+use App\Models\PaketMakanan;
+use App\Models\Pesanan;
 use App\Models\log_aktivitas;
+use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
-    // tampilkan dashboard Gizi (satu method, mengirimkan semua data ke view)
-    public function dashboard(Request $request)
+    public function dashboard()
     {
-        // ringkasan status pesanan
-        $totalPending  = pesanans::where('status', 'pending')->count();
-        $totalProses   = pesanans::where('status', 'proses')->count();
-        $totalSelesai  = pesanans::where('status', 'selesai')->count();
-        $totalDitolak  = pesanans::where('status', 'ditolak')->count();
+        // Menghitung statistik utama
+        $totalPesananPending = Pesanan::where('status', 'pending')->count();
+        $totalPaket = PaketMakanan::count();
+        $totalMenu = Menu::count();
 
-        // hitung total pesanan pending
-        $totalPending = pesanans::where('status', 'pending')->count();
-
-        // hitung total pesanan selesai
-        $totalSelesai = pesanans::where('status', 'selesai')->count();
-
-        // jumlah menu
-        $totalMenus = menus::count();
-
-        // daftar pesanan pending terbaru (limit 10)
-        $incomingPesanans = pesanans::with(['user', 'menu'])
+        // Mengambil 5 pesanan terbaru yang statusnya 'pending' untuk preview
+        $recentPesanan = Pesanan::with(['ruangRawat', 'paketMakanan'])
             ->where('status', 'pending')
-            ->orderBy('tanggal', 'desc')
-            ->orderBy('created_at', 'desc')
+            ->latest() // Mengurutkan berdasarkan data terbaru
             ->take(5)
             ->get();
 
-        // log aktivitas terbaru (limit 10)
+        // Mengambil 5 log aktivitas terbaru
         $recentLogs = log_aktivitas::with('user')
-            ->orderByDesc('waktu')
+            ->latest('created_at')
             ->take(5)
             ->get();
 
+        // Mengirim semua data ke view
         return view('Gizi.dashboard', compact(
-            'totalPending',
-            'totalSelesai',
-            'totalMenus',
-            'incomingPesanans',
+            'totalPesananPending',
+            'totalPaket',
+            'totalMenu',
+            'recentPesanan',
             'recentLogs'
         ));
     }
