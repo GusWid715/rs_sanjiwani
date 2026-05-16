@@ -27,9 +27,9 @@ class RegisterController extends Controller
     protected function validator(array $data)
     {
         return Validator::make($data, [
-            'username' => ['required', 'string', 'max:50', 'unique:users'],
-            'nama_lengkap' => ['nullable', 'string', 'max:100'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'name' => ['required', 'string', 'max:100'],
+            'role' => ['required', 'in:pasien,manager'],
+            'password' => ['required', 'string', 'confirmed'],
         ]);
     }
 
@@ -40,10 +40,9 @@ class RegisterController extends Controller
     protected function create(array $data)
     {
         return User::create([
-            'username' => $data['username'],
+            'name' => $data['name'],
+            'role' => $data['role'],
             'password' => Hash::make($data['password']),
-            'role' => $data['role'] ?? 'pasien', // paksa default 'pasien' jika tidak diberikan
-            'nama_lengkap' => $data['nama_lengkap'] ?? null,
         ]);
     }
 }

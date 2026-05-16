@@ -13,7 +13,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h3>Manajemen kategori</h3>
         <div class="d-flex flex-wrap gap-2">
-            <a href="{{ route('manager.kategori-menu.create') }}"class="btn btn-primary">Tambah Paket Baru</a>
+            <a href="{{ route('manager.kategori-menu.create') }}"class="btn btn-primary">Tambah Kategori Baru</a>
             <a href="{{ route('manager.dashboard') }}" class="btn btn-outline-secondary">Dashboard</a>
         </div>
     </div>

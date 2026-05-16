@@ -5,7 +5,7 @@
 @section('content')
 <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3>Laporan</h3>
+        <h3>Pesanan Masuk</h3>
         <a href="{{ route('manager.dashboard') }}" class="btn btn-outline-secondary">Dashboard</a>
     </div>
 

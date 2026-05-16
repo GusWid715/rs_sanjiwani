@@ -13,8 +13,6 @@
             <a href="{{ route('manager.menu.index') }}" class="btn btn-outline-secondary">Manajemen Menu</a>
             <a href="{{ route('manager.laporan.index') }}" class="btn btn-outline-secondary">Laporan</a>
             <a href="{{ route('manager.logs.index') }}" class="btn btn-outline-secondary">Log Aktivitas</a>
-            <a href="{{ route('logout') }}" onclick="event.preventDefault();document.getElementById('logout-form').submit();" class="btn btn-danger">Logout</a>
-            <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display:none;">
                 @csrf
             </form>
         </div>

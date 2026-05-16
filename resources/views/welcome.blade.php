@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>RS Sanjiwani — Sistem Makanan Rumah Sakit</title>
+  <title>Sistem Manajemen Dapur Rumah Sakit</title>
   @vite(['resources/sass/app.scss', 'resources/js/app.js'])
 </head>
 <body class="bg-light">
 
 <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
   <div class="container">
-    <a class="navbar-brand fw-bold" href="{{ url('/') }}">RS Sanjiwani</a>
+    <a class="navbar-brand fw-bold" href="{{ url('/') }}">Manajemen Dapur Rumah Sakit</a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMain" aria-controls="navMain" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>

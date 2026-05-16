@@ -16,7 +16,7 @@ use App\Http\Controllers\Gizi\LaporanController;
 
 // rute halaman utama
 Route::get('/', function () {
-    return view('welcome');
+    return redirect()->route('login');
 });
 
 // rute untuk autentikasi (login, register, logout, dll.)
