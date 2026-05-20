@@ -42,35 +42,43 @@ class PesananController extends Controller
     // fungsi untuk mengubah status pesanan dari 'proses' menjadi 'selesai'
     public function complete(Pesanan $pesanan)
     {
-        // memulai database transaction
-        DB::transaction(function () use ($pesanan) {
-            // mengambil data paket dan semua menu di dalamnya
-            // load() digunakan untuk eager loading relasi
-            $pesanan->load('paketMakanan.menu');
+        try {
+            // memulai database transaction
+            DB::transaction(function () use ($pesanan) {
+                // mengambil data paket dan semua menu di dalamnya
+                // load() digunakan untuk eager loading relasi
+                $pesanan->load('paketMakanan.menu');
 
-            // validasi stok sebelum pengurangan
-            foreach ($pesanan->paketMakanan->menu as $menu) {
+                // validasi stok sebelum pengurangan
+                foreach ($pesanan->paketMakanan->menu as $menu) {
                     // cek jika stok menu kurang dari atau sama dengan 0
                     if ($menu->stok <= 0) {
-                        // jika stok habis, batalkan seluruh proses dengan melempar exception
+                        // jika stok habis, lempar exception untuk membatalkan transaksi
                         throw new \Exception('Tidak dapat menyelesaikan pesanan. Stok untuk menu "' . $menu->nama_menu . '" telah habis.');
                     }
                 }
 
-            // loop setiap menu di dalam paket
-            foreach ($pesanan->paketMakanan->menu as $menu) {
-                // kurangi stok menu sebanyak 1
-                $menu->decrement('stok');
-            }
+                // loop setiap menu di dalam paket
+                foreach ($pesanan->paketMakanan->menu as $menu) {
+                    // kurangi stok menu sebanyak 1
+                    $menu->decrement('stok');
+                }
 
-            // update status pesanan menjadi 'selesai'
-            $pesanan->update(['status' => 'selesai']);
+                // update status pesanan menjadi 'selesai'
+                $pesanan->update(['status' => 'selesai']);
 
-            // catat aktivitas ke log
-            $this->logActivity('menyelesaikan pesanan #' . $pesanan->id . ' dan mengurangi stok', 'pesanan', $pesanan->id);
-        });
+                // catat aktivitas ke log
+                $this->logActivity('menyelesaikan pesanan #' . $pesanan->id . ' dan mengurangi stok', 'pesanan', $pesanan->id);
+            });
 
-        return redirect()->route('manager.pesanan.index')->with('success', 'Pesanan #' . $pesanan->id . ' telah selesai dan stok menu telah diperbarui.');
+            // Jika transaksi berhasil, kembali dengan pesan sukses
+            return redirect()->route('manager.pesanan.index')->with('success', 'Pesanan #' . $pesanan->id . ' telah selesai dan stok menu telah diperbarui.');
+
+        } catch (\Exception $e) {
+            // Tangkap exception jika stok habis (atau ada error database lain)
+            // Redirect kembali ke halaman sebelumnya dengan membawa session 'error'
+            return redirect()->back()->with('error', $e->getMessage());
+        }
     }
 
     // fungsi untuk mengubah status pesanan menjadi 'batal'
